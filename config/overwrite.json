@@ -1,0 +1,9 @@
+{
+  "video_source": {
+    "transport": "rtsp",
+    "codec": "h264",
+    "uri": "rtsp://127.0.0.1:8554/video-watch",
+    "upstream_uri": "",
+    "demo_video": "data/sample.mp4"
+  }
+}
