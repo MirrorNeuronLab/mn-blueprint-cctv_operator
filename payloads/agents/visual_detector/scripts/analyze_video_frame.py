@@ -52,7 +52,7 @@ from video_json_utils import (
 from mn_blueprint_support import PromptLibrary, start_agent_beacon_thread
 
 
-PROMPTS = PromptLibrary.from_script(__file__, parents_up=2)
+PROMPTS = PromptLibrary.from_script(__file__, parents_up=3)
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".webp", ".bmp"}
 VIDEO_SUFFIXES = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v", ".ts", ".mts"}
@@ -290,7 +290,7 @@ def source_path_from_uri(source_uri: str) -> Path | None:
 def source_path_candidates(source_path: Path) -> list[Path]:
     script_path = Path(__file__).resolve()
     detector_root = script_path.parents[1]
-    blueprint_root = script_path.parents[3]
+    blueprint_root = script_path.parents[4]
     raw = source_path.expanduser()
     candidates: list[Path] = []
 
@@ -302,7 +302,7 @@ def source_path_candidates(source_path: Path) -> list[Path]:
                 Path.cwd() / raw,
                 detector_root / raw,
                 blueprint_root / raw,
-                blueprint_root / "payloads" / "visual_detector" / raw,
+                blueprint_root / "payloads" / "agents" / "visual_detector" / raw,
             ]
         )
 
@@ -322,15 +322,15 @@ def remapped_payload_candidates(source_path: Path, detector_root: Path, blueprin
     parts = source_path.parts
     candidates: list[Path] = []
 
-    payload_suffix = suffix_after(parts, ("payloads", "visual_detector"))
+    payload_suffix = suffix_after(parts, ("payloads", "agents", "visual_detector"))
     if payload_suffix is not None:
         candidates.append(detector_root / payload_suffix)
-        candidates.append(blueprint_root / "payloads" / "visual_detector" / payload_suffix)
+        candidates.append(blueprint_root / "payloads" / "agents" / "visual_detector" / payload_suffix)
 
     blueprint_suffix = suffix_after(parts, ("cctv_operator",))
     if blueprint_suffix is not None:
         candidates.append(blueprint_root / blueprint_suffix)
-        nested_suffix = suffix_after(blueprint_suffix.parts, ("payloads", "visual_detector"))
+        nested_suffix = suffix_after(blueprint_suffix.parts, ("payloads", "agents", "visual_detector"))
         if nested_suffix is not None:
             candidates.append(detector_root / nested_suffix)
 

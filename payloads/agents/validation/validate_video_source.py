@@ -71,7 +71,7 @@ def validate_video_folder(config: dict, video_source: dict) -> int:
     raw_folder = str(
         video_source.get("folder_path")
         or config.get("inputs", {}).get("payload", {}).get("input_folder")
-        or "cctv_operator/examples/sample_inputs"
+        or "examples/sample_inputs"
     ).strip()
     folder = resolve_folder_path(raw_folder)
     if not folder.is_dir():
@@ -102,7 +102,7 @@ def resolve_folder_path(raw_folder: str) -> Path:
     if raw.is_absolute():
         return raw
 
-    blueprint_root = Path(__file__).resolve().parents[2]
+    blueprint_root = Path(__file__).resolve().parents[3]
     candidates = [Path.cwd() / raw, blueprint_root / raw, blueprint_root.parent / raw]
     if raw.parts and raw.parts[0] == blueprint_root.name and len(raw.parts) > 1:
         candidates.insert(1, blueprint_root.joinpath(*raw.parts[1:]))
