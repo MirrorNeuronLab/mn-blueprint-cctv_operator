@@ -1,0 +1,778 @@
+/* Shared offline presentation template for reports and live workspaces.
+ * Owner: mn-skills/web_report_skill/src/mn_web_report_skill/assets/report-template.css.
+ * Static consumers vendor this file unchanged beside their own domain stylesheet.
+ * Use body.workspace-ui > main.workspace-layout > .workspace-primary +
+ * .workspace-secondary for a live view; add workspace-live for a pinned viewport.
+ * At 960px the navigation/content or primary/secondary regions form two columns.
+ * Keep domain content, data access and behavior outside this template.
+ */
+:root,
+.report,
+.workspace-ui {
+  color-scheme: light dark;
+  --od-font-sans:
+    ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  --od-font-mono: ui-monospace, "SFMono-Regular", Consolas, monospace;
+  --od-background: light-dark(#ffffff, #020817);
+  --od-foreground: light-dark(#020817, #f8fafc);
+  --od-primary: light-dark(#0f172a, #f8fafc);
+  --od-primary-foreground: light-dark(#f8fafc, #0f172a);
+  --od-muted: light-dark(#f1f5f9, #1e293b);
+  --od-muted-foreground: light-dark(#64748b, #94a3b8);
+  --od-border: light-dark(#e2e8f0, #1e293b);
+  --od-border-strong: light-dark(#cbd5e1, #475569);
+  --od-focus: light-dark(#0f172a, #cbd5e1);
+  --od-info: light-dark(#2563eb, #93c5fd);
+  --od-success: light-dark(#047857, #6ee7b7);
+  --od-warning: light-dark(#92400e, #fcd34d);
+  --od-warning-surface: light-dark(#fffbeb, #292111);
+  --od-danger: light-dark(#b91c1c, #fca5a5);
+  --od-radius: 8px;
+  --od-control-radius: 6px;
+  --od-control-height: 32px;
+  --od-panel-padding: 12px;
+  --od-gap: 12px;
+  --od-header-height: 48px;
+  --report-background: var(--od-background);
+  --report-surface: var(--od-background);
+  --report-ink: var(--od-foreground);
+  --report-muted: var(--od-muted-foreground);
+  --report-line: var(--od-border);
+  --report-accent: var(--od-primary);
+  --vbg-surface-primary: var(--od-background);
+  --vbg-surface-secondary: var(--od-muted);
+  --vbg-text-primary: var(--od-foreground);
+  --vbg-text-secondary: var(--od-muted-foreground);
+  --vbg-border-default: var(--od-border);
+  --vbg-border-subtle: var(--od-border);
+  --vbg-border-strong: var(--od-border-strong);
+  --vbg-focus: var(--od-focus);
+  --vbg-font-sans: var(--od-font-sans);
+  --vbg-type-section: 16px;
+  --vbg-type-subsection: 14px;
+  --vbg-leading-body: 20px;
+  --vbg-leading-section: 24px;
+  --vbg-weight-heading: 600;
+  --background: var(--od-background);
+  --foreground: var(--od-foreground);
+  --popover: var(--od-background);
+  --primary: var(--od-primary);
+  --primary-foreground: var(--od-primary-foreground);
+  --secondary: var(--od-muted);
+  --muted-foreground: var(--od-muted-foreground);
+  --ring: var(--od-focus);
+  --border: var(--od-border);
+  --mono: var(--od-font-mono);
+}
+:root {
+  background: var(--od-background);
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+:root[data-theme] :is(.report, .workspace-ui) {
+  color-scheme: inherit;
+}
+:is(.report, .workspace-ui) {
+  margin: 0;
+  background: var(--od-background);
+  color: var(--od-foreground);
+  font: 13px/1.5 var(--od-font-sans);
+  -webkit-font-smoothing: antialiased;
+  overflow-wrap: anywhere;
+}
+:is(.report, .workspace-ui) *,
+:is(.report, .workspace-ui) *::before,
+:is(.report, .workspace-ui) *::after {
+  box-sizing: border-box;
+}
+:is(.report, .workspace-ui) [hidden] {
+  display: none !important;
+}
+:is(.report, .workspace-ui) :where(h1, h2, h3, h4, p, figure) {
+  margin: 0;
+}
+:is(.report, .workspace-ui) :where(h2) {
+  font-size: 16px;
+  line-height: 1.5;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  margin-bottom: 12px;
+}
+:is(.report, .workspace-ui) :where(h3, h4) {
+  font-size: 13px;
+  line-height: 1.5;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+:is(.report, .workspace-ui) p {
+  margin: 6px 0;
+}
+:is(.report, .workspace-ui) :where(button, input, select, textarea) {
+  font: inherit;
+  max-width: 100%;
+  min-width: 0;
+}
+:is(.report, .workspace-ui) :where(button, .workspace-button) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: var(--od-control-height);
+  padding: 5px 10px;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-control-radius);
+  background: var(--od-background);
+  color: var(--od-foreground);
+  font-size: 12px;
+  line-height: 20px;
+  font-weight: 500;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-decoration: none;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+:is(.report, .workspace-ui) :where(button, .workspace-button):hover {
+  background: var(--od-muted);
+}
+:is(.report, .workspace-ui) :where(button:disabled, [aria-disabled="true"]) {
+  opacity: 0.5;
+  cursor: default;
+}
+:is(.report, .workspace-ui) :where(.primary, [data-variant="default"]) {
+  background: var(--od-primary);
+  color: var(--od-primary-foreground);
+  border-color: transparent;
+}
+:is(.report, .workspace-ui) :where(.primary, [data-variant="default"]):hover {
+  background: var(--od-primary);
+  opacity: 0.9;
+}
+:is(.report, .workspace-ui)
+  :where([data-variant="ghost"], [data-variant="link"]) {
+  background: transparent;
+  border-color: transparent;
+}
+:is(.report, .workspace-ui)
+  :where(
+    input:not([type="radio"]):not([type="checkbox"]):not([type="range"]),
+    select,
+    textarea
+  ) {
+  min-height: var(--od-control-height);
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-control-radius);
+  padding: 5px 9px;
+  background: var(--od-background);
+  color: var(--od-foreground);
+  font-size: 13px;
+}
+:is(.report, .workspace-ui) :where(input, textarea)::placeholder {
+  color: var(--od-muted-foreground);
+}
+:is(.report, .workspace-ui) :where(a) {
+  color: inherit;
+  text-underline-offset: 3px;
+}
+:is(.report, .workspace-ui)
+  :where(
+    button,
+    a,
+    input,
+    select,
+    textarea,
+    summary,
+    [tabindex="0"]
+  ):focus-visible {
+  outline: 2px solid var(--od-focus);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+:is(.report, .workspace-ui) :where(label) {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--od-muted-foreground);
+}
+:is(.report, .workspace-ui) :where(textarea) {
+  width: 100%;
+  field-sizing: fixed;
+  min-height: 120px;
+  resize: vertical;
+}
+:is(.report, .workspace-ui) :where(details) {
+  margin: 10px 0;
+}
+:is(.report, .workspace-ui) :where(summary) {
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--od-muted-foreground);
+  padding: 4px 0;
+}
+:is(.report, .workspace-ui) :where(.muted, .qualification) {
+  color: var(--od-muted-foreground);
+  font-size: 12px;
+}
+:is(.report, .workspace-ui) :where(.card, .workspace-card) {
+  padding: var(--od-panel-padding);
+  margin-bottom: var(--od-gap);
+  min-width: 0;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  background: var(--od-background);
+}
+:is(.report, .workspace-ui) :where(.actions, .toolbar, .workspace-actions) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 6px;
+  margin: 10px 0;
+}
+.workspace-panel-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+.workspace-panel-heading h2 {
+  margin: 0;
+  font-size: 13px;
+}
+.workspace-empty {
+  padding: 12px 0;
+  color: var(--od-muted-foreground);
+  font-size: 12px;
+}
+.workspace-alert {
+  border-left: 2px solid var(--od-warning);
+  background: var(--od-warning-surface);
+  padding: 8px 10px;
+  color: var(--od-warning);
+}
+.workspace-segments {
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  max-width: 100%;
+  width: fit-content;
+  padding: 3px;
+  margin: 0;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  background: var(--od-muted);
+}
+.workspace-segments legend {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+}
+.workspace-segments label {
+  position: relative;
+  cursor: pointer;
+}
+.workspace-segments input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 1;
+}
+.workspace-segments span {
+  display: block;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: var(--od-control-radius);
+  color: var(--od-muted-foreground);
+  font-size: 12px;
+}
+.workspace-segments :checked + span {
+  background: var(--od-background);
+  border-color: var(--od-border);
+  color: var(--od-foreground);
+  font-weight: 500;
+  box-shadow: 0 1px 2px #00000008;
+}
+.workspace-segments :focus-visible + span {
+  outline: 2px solid var(--od-focus);
+  outline-offset: 1px;
+}
+
+/* Same compact header and navigation in embedded and detached reports. */
+.report-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: var(--od-header-height);
+  padding: 8px 12px;
+  background: var(--od-background);
+  border-bottom: 1px solid var(--od-border);
+}
+.report-identity {
+  display: grid;
+  flex: 1;
+  align-items: baseline;
+  gap: 0;
+  min-width: 0;
+}
+.report-identity h1 {
+  margin: 0;
+  font: 600 13px/20px var(--od-font-sans);
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+.report-identity > span {
+  min-width: 0;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--od-muted-foreground);
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+#report-actions {
+  flex-shrink: 0;
+  margin: 0;
+}
+.report-root-layout,
+.report .workspace.report-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 12px;
+  width: 100%;
+  margin: 0;
+  padding: 12px;
+}
+.report-container {
+  padding: 0;
+  max-width: none;
+  margin: 0;
+}
+.report-main {
+  min-width: 0;
+  border: 0;
+  padding: 0;
+  scroll-margin-top: 64px;
+}
+#report-navigation,
+.report-tabs-root,
+.report-button-mount {
+  display: contents;
+}
+.report .report-nav {
+  position: static;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: stretch;
+  gap: 3px;
+  width: 100%;
+  height: auto;
+  padding: 3px;
+  margin: 0;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  background: var(--od-muted);
+}
+.report .report-nav [role="tab"],
+.report .report-more-trigger {
+  display: flex;
+  justify-content: flex-start;
+  min-width: 0;
+  min-height: 32px;
+  height: auto;
+  width: 100%;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--od-control-radius);
+  background: transparent;
+  color: var(--od-muted-foreground);
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  font: 500 12px/18px var(--od-font-sans);
+  box-shadow: none;
+}
+.report .report-nav [role="tab"]::after {
+  display: none;
+}
+.report .report-nav [role="tab"]:hover,
+.report .report-more-trigger:hover {
+  background: var(--od-background);
+  color: var(--od-foreground);
+}
+.report .report-nav [aria-selected="true"] {
+  border-color: var(--od-border);
+  background: var(--od-background);
+  color: var(--od-foreground);
+  box-shadow: 0 1px 2px #00000008;
+}
+.report .more-views {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+  border: 0;
+}
+.report .more-views > div {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  padding-top: 3px;
+}
+.report .report-more-trigger {
+  justify-content: space-between;
+}
+.report .text-action {
+  border: 0;
+  background: transparent;
+  color: var(--od-muted-foreground);
+  font-size: 12px;
+  padding: 2px 0;
+  min-height: 28px;
+  height: auto;
+}
+.report .text-action:hover {
+  color: var(--od-foreground);
+  text-decoration: underline;
+}
+.report .report-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  min-height: 40px;
+  height: auto;
+  padding: 10px 0;
+  border: 0;
+  border-top: 1px solid var(--od-border);
+  border-radius: 0;
+  background: transparent;
+  text-align: left;
+  white-space: normal;
+}
+.report .report-row > span:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.report .report-row strong {
+  font-size: 13px;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+.report .report-row small {
+  font-size: 12px;
+  color: var(--od-muted-foreground);
+}
+.report .report-row > span:last-child {
+  flex-shrink: 0;
+  color: var(--od-muted-foreground);
+}
+.report .report-row:hover {
+  background: var(--od-muted);
+}
+.report .report-row:focus-visible {
+  outline-offset: -2px;
+}
+.report :is(.table-wrap, .report-table) {
+  min-width: 0;
+  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior-inline: contain;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-control-radius);
+  margin: 12px 0;
+}
+.report table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 12px;
+  background: var(--od-background);
+}
+.report th,
+.report td {
+  text-align: left;
+  vertical-align: top;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--od-border);
+  overflow-wrap: anywhere;
+}
+.report th {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--od-muted-foreground);
+  background: var(--od-muted);
+}
+.report tbody tr:last-child td {
+  border-bottom: 0;
+}
+.report td button {
+  font: inherit;
+  max-width: 100%;
+  min-height: 28px;
+  text-align: left;
+}
+.report :is(blockquote, pre) {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 10px 12px;
+  margin: 10px 0;
+  background: var(--od-muted);
+  border-left: 2px solid var(--od-border-strong);
+  font-size: 12px;
+}
+.report pre,
+.report code {
+  font-family: var(--od-font-mono);
+}
+.report :is(.report-footer, footer) {
+  margin: 16px 0 0;
+  border-top: 1px solid var(--od-border);
+  padding-top: 10px;
+  font-size: 11px;
+  color: var(--od-muted-foreground);
+}
+.report .report-footer:empty {
+  display: none;
+}
+.report :is(.report-component-menu, .report-options) {
+  min-width: 0;
+  max-width: min(340px, calc(100vw - 24px));
+  font: 12px/1.5 var(--od-font-sans);
+}
+.report [data-slot="native-select-wrapper"] {
+  width: 100%;
+  min-width: 0;
+}
+.report [data-slot="native-select"] {
+  padding-right: 30px;
+  text-overflow: ellipsis;
+}
+.report [data-slot="tooltip-content"] {
+  max-width: min(280px, calc(100vw - 24px));
+  overflow-wrap: anywhere;
+}
+.report-panel.report-sheet {
+  position: fixed;
+  z-index: 30;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: 58dvh;
+  height: auto;
+  overflow: auto;
+  overscroll-behavior: contain;
+  display: block;
+  padding: 0 12px 12px;
+  border: 1px solid var(--od-border);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 8px 30px #00000014;
+  background: var(--od-background);
+  font-size: 12px;
+  overflow-wrap: anywhere;
+  transform: none;
+  animation: none;
+  transition: none;
+}
+.report-panel-heading {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 0;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--od-border);
+  background: var(--od-background);
+}
+.report .report-panel-heading h2 {
+  margin: 0;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.report .report-panel-heading button {
+  flex-shrink: 0;
+}
+.report .report-sheet [data-slot="button"] {
+  max-width: 100%;
+  white-space: normal;
+}
+:is(.report, .workspace-ui) .skip {
+  position: fixed;
+  top: -100px;
+  left: 12px;
+  z-index: 50;
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--od-background);
+}
+:is(.report, .workspace-ui) .skip:focus {
+  top: 8px;
+}
+
+/* Live views share the same tokens and primitives without requiring React. */
+.workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--od-gap);
+  padding: var(--od-panel-padding);
+  margin: 0;
+  width: 100%;
+  min-width: 0;
+}
+.workspace-primary,
+.workspace-secondary {
+  min-width: 0;
+  min-height: 0;
+}
+.workspace-live {
+  height: 100dvh;
+  overflow: hidden;
+}
+.workspace-live > .workspace-layout {
+  height: 100%;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.workspace-live .workspace-primary {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.workspace-live .workspace-secondary {
+  display: flex;
+  flex-direction: column;
+}
+@media (min-width: 480px) {
+  .report .report-nav {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+@media (min-width: 960px) {
+  .report-identity {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 16px;
+  }
+  .report-identity > span {
+    text-align: right;
+    font-size: 12px;
+  }
+  .report-root-layout,
+  .report .workspace.report-layout {
+    grid-template-columns: 168px minmax(0, 1fr);
+    gap: 16px;
+  }
+  .report .report-nav {
+    position: sticky;
+    top: 60px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100dvh - 72px);
+    overflow: auto;
+    scrollbar-width: thin;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+  .report .report-nav [aria-selected="true"],
+  .report .report-nav [role="tab"]:hover {
+    background: var(--od-muted);
+    border-color: transparent;
+    box-shadow: none;
+  }
+  .report .more-views {
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid var(--od-border);
+  }
+  .report .more-views > div {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .report-panel.report-sheet {
+    inset: 60px 12px 12px auto;
+    width: min(440px, 45vw);
+    max-height: none;
+    border-radius: var(--od-radius);
+  }
+  .workspace-layout {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+  }
+  .workspace-live > .workspace-layout {
+    grid-template-rows: minmax(0, 1fr);
+  }
+  .workspace-secondary {
+    border-left: 1px solid var(--od-border);
+    padding-left: var(--od-panel-padding);
+  }
+}
+@media (pointer: coarse) {
+  :is(.report, .workspace-ui) :where(button, .workspace-button, summary) {
+    min-height: 44px;
+  }
+  .report .report-nav [role="tab"],
+  .report .report-more-trigger {
+    min-height: 44px;
+  }
+  .workspace-segments span {
+    min-height: 38px;
+    display: flex;
+    align-items: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.report, .workspace-ui) *,
+  :is(.report, .workspace-ui) *::before,
+  :is(.report, .workspace-ui) *::after {
+    scroll-behavior: auto !important;
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (forced-colors: active) {
+  .report .report-nav [aria-selected="true"],
+  .workspace-segments :checked + span {
+    border-color: Highlight;
+  }
+}
+@media print {
+  .report-header {
+    position: static;
+  }
+  .report .report-nav,
+  #report-actions,
+  .report-panel,
+  .report .skip {
+    display: none;
+  }
+  .report-root-layout,
+  .report .workspace.report-layout {
+    display: block;
+    padding: 0;
+  }
+  .report {
+    color-scheme: light;
+  }
+}
