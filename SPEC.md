@@ -85,10 +85,15 @@ An applied prompt is separate from a later completed window; clear restores the
 configured goal. Retrospective questions never change monitoring. Chat shows the first completed window per goal revision and the start of each
 possible sighting. The read-only workspace provides newest-first all-message and
 current-goal timelines with inspectable saved images in both views. Keep the video
-at the top with run status over its upper-left corner; only the event stream below
-scrolls. Omit the camera heading, monitoring prompt and routine diagnostics from
-the page. Camera identity remains accessible through the preview label and tooltip;
-monitoring details remain available through Chat and export. History answers include a reviewed still when available, preserving its verdict and any image-grounded box. A positive structured verdict is required for the goal view. SDK/Core retain lifecycle controls, public authentication and envelopes.
+at the top with run status over its upper-left corner. Only the event stream
+scrolls in the default view. Wide windows place the video on the left and events
+on the right. The monitoring goal starts collapsed and opens from the icon in
+the upper-right corner of the video. Camera identity remains accessible through
+the preview label and tooltip. Routine diagnostics remain available through Chat
+and export. History answers include a reviewed still when available, preserving
+its verdict and any image-grounded box. A positive structured verdict is required
+for the goal view. SDK/Core retain lifecycle controls, public authentication and
+envelopes.
 
 The read-only workspace polls saved state every two seconds and restores after
 reload. Render model text as text. Keep credentials, action endpoints and raw

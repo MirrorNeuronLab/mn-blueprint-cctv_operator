@@ -82,10 +82,13 @@ analysis success. Model/window latency and capture/receipt times remain distinct
 **Everything** shows the newest completed window first. **Goal matches** shows
 only explicit matches for the current monitoring goal and revision, including
 matches older than the most recent routine windows. Scroll down to read earlier
-entries. The video stays at the top with its run status in the upper-left corner;
-only the event stream below scrolls. Both views show saved frames; select a frame
-to inspect it with any image-grounded highlight. Monitoring details, timings and
-indexing coverage remain available through Chat and **Export**. **Show earlier** pages through all retained entries for this run, 300 at
+entries. The video stays at the top with its run status in the upper-left corner.
+Only the event stream scrolls. In a wide window, the video stays on the left and
+events scroll on the right. Select the target icon in the upper-right corner of
+the video to show or hide the current monitoring goal. Both views show saved
+frames. Select a frame to inspect it with any image-grounded highlight. Timings
+and indexing coverage remain available through Chat and **Export**.
+**Show earlier** pages through all retained entries for this run, 300 at
 a time. **Back to latest** resumes following new windows.
 
 Chat records the first observation for each goal and the beginning of each
@@ -152,8 +155,8 @@ git diff --check
 
 The offline browser gate uses the sibling desktop checkout's declared Playwright
 dependency (or `OTTERDESK_APP_ROOT`). It checks filtering, image expansion, text
-escaping, scroll anchoring, empty/error states, pinned video, timeline-only scrolling
-and resizing from 320 to 1440 pixels, including short windows.
+escaping, scroll anchoring, empty/error states, pinned video, goal disclosure,
+timeline-only scrolling and resizing between narrow and wide layouts.
 
 To repeat the native index and retrieval gate, set `CCTV_TEST_MEMBRANE_BINARY`
 to a built Membrane engine and run `tests/test_cctv_realtime_history.py` with

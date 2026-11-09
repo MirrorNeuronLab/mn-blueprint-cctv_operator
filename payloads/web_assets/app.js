@@ -115,6 +115,9 @@ function render(data) {
   byId("camera-image").alt = `Current camera preview · ${data.camera}`;
   byId("status").textContent = labels[session.status] || "Preparing";
   byId("status").dataset.state = session.status;
+  const goal = byId("goal");
+  const instruction = session.instruction || "Waiting for the monitoring goal…";
+  if (goal.textContent !== instruction) goal.textContent = instruction;
   byId("preview-state").hidden = data.preview.connected;
   byId("preview-state").textContent = data.preview.error || "Connecting to live video…";
   byId("error").hidden = !(data.error || session.error);
