@@ -104,7 +104,7 @@ class VLMClient:
         )
         if self._stream_absent(response, stream_id):
             return
-        if response.status_code not in {200, 202, 204, 404}:
+        if response.status_code not in {200, 202, 204, 404} and not self._request_absent(response, stream_id, request_id):
             response.raise_for_status()
         # NVIDIA can retain the resource briefly after caption cancellation.
         for attempt in range(5):
@@ -114,6 +114,20 @@ class VLMClient:
             if response.status_code != 409 or attempt == 4:
                 response.raise_for_status()
             await asyncio.sleep(0.5 * (attempt + 1))
+
+    @staticmethod
+    def _request_absent(response, stream_id, request_id):
+        # NVIDIA can finish a caption request while retaining its stream asset.
+        # This receipt permits stream deletion, not skipping stream cleanup.
+        if response.status_code != 400 or not request_id:
+            return False
+        try:
+            body = response.json()
+        except ValueError:
+            return False
+        return isinstance(body, dict) and body.get("code") == "InvalidParameterValue" and body.get("message") == (
+            f"No active caption request {request_id} for live stream {stream_id}"
+        )
 
     @staticmethod
     def _stream_absent(response, stream_id):

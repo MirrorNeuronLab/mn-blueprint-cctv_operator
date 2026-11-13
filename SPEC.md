@@ -47,6 +47,11 @@ The pinned NVIDIA AssetManager reports an absent resource with HTTP 400,
 prove a saved stream is gone after restart/expiry and complete cleanup. Other
 400 responses, wrong identities, transport failures, and unknown registration
 outcomes retain the ownership fence.
+An exact `InvalidParameterValue`/400 receipt naming both the saved request and
+stream as having no active caption request permits continuing to stream deletion.
+It does not prove the stream is absent. Stream deletion must independently
+succeed or attest that exact stream is gone before clearing the saved lease;
+409 exhaustion, other failures, mismatched IDs and missing request IDs preserve it.
 
 ## Evidence and persistence
 

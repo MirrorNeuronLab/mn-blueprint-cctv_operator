@@ -71,6 +71,9 @@ camera or inference path is opened. Only resource-in-use cleanup is retried.
 After a VSS restart, NVIDIA's exact `BadParameter`/HTTP 400 receipt naming the
 missing stream reconciles its saved lease. Other errors still require verified
 cleanup before another registration.
+If NVIDIA reports the exact saved caption request is no longer active, cleanup
+still deletes its stream registration before clearing the lease. A stream still
+in use or any mismatched error retains the fence.
 
 ## Observations and controls
 
