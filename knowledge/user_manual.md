@@ -1,23 +1,23 @@
 # CCTV co-worker manual
 
-Enter one approved RTSP/RTSPS camera in the secure Video stream URL field. Never
-paste its credentials into Chat. A visible monitoring goal is optional; blank
-uses concise scene activity. No sample camera is included. NVIDIA describes
-sampled four-second video windows; a separate live preview shows current video.
-Model loading can take several minutes. Preview success is not analysis success.
+Choose Camera count in setup or Configure. Enter an approved RTSP or RTSPS URL
+for each selected camera in its secure field. Keep camera credentials in those
+fields. An optional visible goal applies to every camera. Leave the goal blank
+for concise scene activity. NVIDIA describes sampled four-second windows, and
+each camera has a separate live preview and analysis status.
 
 Use get_operator_status for current work. For a past question such as “Did you
 find anyone wearing a red coat in the past hour?”, use answer_video_question.
 Pass the full question with empty time bounds for relative intervals. It searches
-indexed images and captions, reviews candidates and returns capture times,
+indexed images and captions for the configured cameras, reviews candidates and returns camera names, capture times,
 citations, coverage and a reviewed still when available. A still can accompany an
 uncertain or negative answer; its review verdict remains explicit. Check the indexed count in the Web UI if older windows
 are pending. get_video_history lists recent windows in capture order.
 
-In the Web UI, select Everything or Goal matches. Both views show saved window
+In the Web UI, the camera grid shows each preview and which feeds need review.
+Select Everything or Goal matches. Both views label observations by camera and show saved window
 snapshots where available; select a frame to expand it. A box is an estimate on
-that specific image. Camera status overlays the live video, with monitoring
-details beneath it.
+that specific image. Open the target icon to see the shared monitoring goal.
 Older 6.0 windows have captions only.
 
 Use set_monitoring_instruction only for an explicit future visible condition or
@@ -27,8 +27,8 @@ receipt means the prompt is applied, not that its condition has occurred. End
 the turn after that receipt; the next analyzed window arrives separately.
 Clearing restores the configured goal. Configure edits apply to later runs.
 
-Use Chat for goals and OtterDesk for pause/stop. Stopping releases the owned
-caption request and stream. Failed cleanup blocks another connection. Check the
+Use Chat for goals and OtterDesk for pause or stop. Stopping releases each owned
+caption request and stream. Failed cleanup blocks new registrations. Check the
 recorded error and selected computer's NVIDIA service; never reset the runtime
 as a recovery shortcut. Reads and explanations never start capture.
 

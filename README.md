@@ -3,18 +3,51 @@
 The CCTV workspace follows the working sample at
 `spark:/home/homer/Sandbox/rt_vlm`. NVIDIA `vss-rt-vlm` 3.3.0 owns DeepStream
 video decoding, window sampling and Cosmos3 Edge inference. The co-worker saves
-completed streaming captions and supplies a separate, read-only live preview.
-Version 6.1 adds goal timelines, window snapshots and image-backed history to the 6.0 NVIDIA streaming blueprint.
+completed streaming captions and supplies separate, read-only live previews.
+Version 6.2 monitors up to four cameras from one co-worker and labels observations
+and snapshots with their camera.
 
 ## Start
 
-Enter an approved RTSP/RTSPS camera through OtterDesk's secure **Video stream URL**
-field, and optionally specify a visible monitoring goal. No camera is included.
-Credentials remain server-side; never paste them into Chat or shell commands.
+In **Camera streams** during first-run setup, choose **Camera count**, enter an
+approved RTSP or RTSPS URL for each selected camera, then choose **Start monitoring**.
+Use **Configure** to save changes for a later run. The **Monitoring goal** applies
+to all selected cameras. Enter addresses that both the NVIDIA container and the
+preview service can reach. Keep credentials in the secure URL fields.
 
 ```bash
 mn blueprint run ./cctv_operator --node mirror_neuron@10.0.4.32 --web-ui \
   --set video_source.uri=rtsp://camera.example/approved-stream
+```
+
+For a four-camera test, a local publisher can serve sample clips at
+`rtsp://127.0.0.1:8554/stream/1` through `rtsp://127.0.0.1:8554/stream/4`.
+Use the publisher address reachable from the selected runtime and container for
+each URL. `127.0.0.1` refers to the connecting process's own network namespace.
+
+```bash
+mn blueprint run ./cctv_operator --web-ui \
+  --set video_source.count=4 \
+  --set video_source.uri=rtsp://camera.example:8554/stream/1 \
+  --set video_source.camera_2.uri=rtsp://camera.example:8554/stream/2 \
+  --set video_source.camera_3.uri=rtsp://camera.example:8554/stream/3 \
+  --set video_source.camera_4.uri=rtsp://camera.example:8554/stream/4
+```
+
+For manual runs from this checkout, the same settings can go in
+`config/overwrite.json`. This example uses the four local sample URLs. Adjust
+the host before running on a separate computer or in a container.
+
+```json
+{
+  "video_source": {
+    "count": 4,
+    "uri": "rtsp://127.0.0.1:8554/stream/1",
+    "camera_2": { "uri": "rtsp://127.0.0.1:8554/stream/2" },
+    "camera_3": { "uri": "rtsp://127.0.0.1:8554/stream/3" },
+    "camera_4": { "uri": "rtsp://127.0.0.1:8554/stream/4" }
+  }
+}
 ```
 
 Refresh the prepared Job when it is idle, then start a new run to use this version. Existing runs retain
@@ -62,12 +95,17 @@ as `invocation_outcome_unconfirmed`. Pausing releases this stack, but resuming t
 interrupted run is not qualified; the live test reproduced the fence. Use a new
 run after stopping. This rewrite does not bypass Core's uncertain-effect guard.
 
-The direct protocol is `/v1/ready`, `/v1/models`, stream registration,
-`/v1/generate_captions` SSE, caption-request cancellation, then stream deletion.
-Stop waits for registration to return its stream ID. Failed cleanup retains a
-durable ownership lease and blocks another registration. An unknown registration
-outcome after a process crash requires reconciliation in NVIDIA; no alternate
-camera or inference path is opened. Only resource-in-use cleanup is retried.
+The direct protocol discovers one shared model. Each camera has a stable NVIDIA
+stream ID that the operator saves before registering it. A lost reply leaves
+an ID the operator can use to clean up. NVIDIA rejects duplicate registrations
+with that ID. The dedicated NVIDIA container opens the camera through its
+caption pipeline without a separate discovery connection during registration.
+Stop lets in-flight registration settle, cancels the caption request and
+deletes its stream. Failed cleanup retains the durable lease.
+Every outstanding lease must be reconciled before starting another run, even
+after reducing the camera count. For a legacy pending registration with no
+stream ID, verify that the owning NVIDIA service has stopped before clearing
+the pending record. Only resource-in-use stream deletion is retried.
 After a VSS restart, NVIDIA's exact `BadParameter`/HTTP 400 receipt naming the
 missing stream reconciles its saved lease. Other errors still require verified
 cleanup before another registration.
@@ -78,25 +116,40 @@ in use or any mismatched error retains the fence.
 ## Observations and controls
 
 Defaults analyze eight frames per four-second window at 608×320, with 192 output
-tokens, temperature 0.2, no reasoning and no audio. The independent CPU/PyAV
-preview updates up to four times per second. Preview success does not prove
-analysis success. Model/window latency and capture/receipt times remain distinct.
+tokens, temperature 0.2, reasoning and audio disabled. Each camera's CPU/PyAV
+preview updates up to four times per second. The cameras share one NVIDIA model,
+so inference latency depends on the combined load. Preview health and completed
+analysis are reported per camera.
 
 **Everything** shows the newest completed window first. **Goal matches** shows
 only explicit matches for the current monitoring goal and revision, including
-matches older than the most recent routine windows. Scroll down to read earlier
-entries. The video stays at the top with its run status in the upper-left corner.
-Only the event stream scrolls. In a wide window, the video stays on the left and
-events scroll on the right. Select the target icon in the upper-right corner of
-the video to show or hide the current monitoring goal. Both views show saved
-frames. Select a frame to inspect it with any image-grounded highlight. Timings
+matches older than the most recent routine windows. **Cameras at a glance** uses
+the shared web report template, with summary cards for connected previews,
+cameras needing review, completed observations in this run and possible matches
+for the current goal. Connection health is separate from analysis status; these
+counts do not establish incidents or complete coverage.
+
+The camera cards show all configured sources, with the name, preview health and
+analysis status on each card. Use **Preview camera** or a card's expand button
+to focus on one feed; **All cameras** restores the grid. Switching previews does
+not filter the observation timeline or restart the streams. The shared timeline
+scrolls and labels each observation with its camera. In a side panel, the cameras
+stay above the timeline; in a full window, they stay on the left with observations
+on the right. The summary condenses in narrow panels and hides in short panels
+to preserve space for video and observations. Light and dark appearances use the
+unchanged shared template tokens.
+
+Select the target icon beside the camera selector to show or hide the current
+monitoring goal. Both observation views show saved frames. Select a frame to
+inspect it with any image-grounded highlight. Timings
 and indexing coverage remain available through Chat and **Export**.
 **Show earlier** pages through all retained entries for this run, 300 at
 a time. **Back to latest** resumes following new windows.
 
-Chat records the first observation for each goal and the beginning of each
-subsequent possible sighting. Use Chat to change the goal and OtterDesk to
-pause or stop. An applied goal takes effect on future video windows.
+Chat records the first observation per camera and goal and the beginning of
+each subsequent possible sighting on that camera. A failed feed is marked
+**Needs review** while other feeds continue. Use Chat to change the goal for all
+cameras and OtterDesk to pause or stop.
 
 The NVIDIA stream supplies caption intervals. The co-worker independently
 buffers preview JPEGs and saves the one received nearest the midpoint, only
@@ -107,7 +160,8 @@ bytes locates a target. An observation can have no snapshot or no box.
 ## Search saved footage
 
 Ask **“Did you find anyone wearing a red coat in the past hour?”** Chat searches
-the current camera across runs of this Job. Search results include index coverage.
+the configured cameras across runs of this Job. Search results name the camera
+and include index coverage.
 A background task indexes the caption and available
 original JPEG as distinct Membrane source units. Earlier 6.0 observations are
 indexed from their captions. Their images were never saved.
@@ -135,9 +189,9 @@ process can replicate container-root writes. Camera credentials and cleanup leas
 remain outside those published accounts in Job state.
 
 The declared Job state resource owns `realtime_vlm/captions.sqlite3`, source-scoped
-history, command receipts and cleanup leases. History survives runs for the same
-Job/camera. A process lock prevents two operators owning one Job. Storage stops
-at 10,000 captions rather than silently deleting evidence. Review/export retention
+history, command receipts and cleanup leases. History survives runs for each camera
+in the same Job. A process lock prevents two operators owning one Job. The 10,000
+caption capacity is shared across the Job. Review/export retention
 before continuing. Reports/workspace/export show the latest 300 current-run
 captions with omission counts; `get_video_history` returns up to twelve accounts,
 optionally filtered by timezone-qualified capture bounds. It never reruns vision.
@@ -157,9 +211,11 @@ git diff --check
 ```
 
 The offline browser gate uses the sibling desktop checkout's declared Playwright
-dependency (or `OTTERDESK_APP_ROOT`). It checks filtering, image expansion, text
-escaping, scroll anchoring, empty/error states, pinned video, goal disclosure,
-timeline-only scrolling and resizing between narrow and wide layouts.
+dependency (or `OTTERDESK_APP_ROOT`). It checks one through four camera sources,
+summary counts, preview selection without restarting streams, filtering,
+pagination, image expansion, text escaping, scroll anchoring, empty/error states,
+goal disclosure, timeline-only scrolling and resizing between narrow and wide
+layouts in light and dark appearances.
 
 To repeat the native index and retrieval gate, set `CCTV_TEST_MEMBRANE_BINARY`
 to a built Membrane engine and run `tests/test_cctv_realtime_history.py` with

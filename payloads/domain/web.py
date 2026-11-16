@@ -9,6 +9,7 @@ from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
+from .camera_sources import MAX_CAMERAS
 from .window_evidence import display_frame
 
 
@@ -42,7 +43,7 @@ def create_app(operator):
     @app.get("/api/observations")
     def observations(view: Literal["all", "goal"], before_id: str = Query(min_length=1, max_length=160),
                      revision: int = 0):
-        if view == "goal" and revision != operator.analysis.revision:
+        if view == "goal" and revision != operator.monitoring.goal["revision"]:
             raise HTTPException(409, "The monitoring goal changed.")
         try:
             return operator.store.history(current_run=True, goal_revision=revision if view == "goal" else None,
@@ -57,21 +58,27 @@ def create_app(operator):
                         headers={"Content-Disposition": 'attachment; filename="cctv-observations.json"'})
 
     @app.get("/api/preview.mjpeg")
-    async def preview(request: Request):
+    async def preview(request: Request, camera: int = Query(1, ge=1, le=MAX_CAMERAS)):
+        feed = operator.previews.get(camera)
+        if feed is None:
+            raise HTTPException(404, "This camera is not configured.")
         async def frames():
             previous = -1
             while not await request.is_disconnected():
-                if operator.preview.jpeg and operator.preview.frame_number != previous:
-                    frame, previous = operator.preview.jpeg, operator.preview.frame_number
+                if feed.jpeg and feed.frame_number != previous:
+                    frame, previous = feed.jpeg, feed.frame_number
                     yield b"--frame\r\nContent-Type: image/jpeg\r\nContent-Length: " + str(len(frame)).encode() + b"\r\n\r\n" + frame + b"\r\n"
                 await asyncio.sleep(0.1)
         return StreamingResponse(frames(), media_type="multipart/x-mixed-replace; boundary=frame")
 
     @app.get("/api/snapshot.jpg")
-    async def snapshot():
-        if not operator.preview.jpeg or time.time() - operator.preview.last_frame_at > 8:
+    async def snapshot(camera: int = Query(1, ge=1, le=MAX_CAMERAS)):
+        feed = operator.previews.get(camera)
+        if feed is None:
+            raise HTTPException(404, "This camera is not configured.")
+        if not feed.jpeg or time.time() - feed.last_frame_at > 8:
             raise HTTPException(503, "No recent preview frame is available.")
-        return Response(operator.preview.jpeg, media_type="image/jpeg")
+        return Response(feed.jpeg, media_type="image/jpeg")
 
     @app.get("/api/windows/{identity}/snapshot.jpg")
     def window_snapshot(identity: str):

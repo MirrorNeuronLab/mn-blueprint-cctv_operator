@@ -1,4 +1,23 @@
-# CCTV 6.1 validation
+# CCTV validation
+
+## Four-camera monitoring in 6.2
+
+On November 14, 2026, one DGX Spark run registered four generated RTSP feeds
+with the pinned NVIDIA 3.3.0 image. A live status read reported 83 completed
+captions per camera. All four previews returned JPEGs, and each of the 300
+retained report entries had a saved window image. The verification run was
+cancelled and its NVIDIA container and reserved port were released.
+
+The local operator also decoded all four 1080p warehouse sample feeds at
+`rtsp://127.0.0.1:8554/stream/1` through `/stream/4`. A protocol fixture drove
+captions in that check. Each feed returned a distinct preview and saved a
+JPEG through its own camera session. Extended playback of camera 4 reported
+H.264 errors. FFmpeg reproduced the same errors when decoding the source clip
+directly. Chromium exercised one and four previews,
+including one disconnected analysis session, observation labels and resizing
+down to 215 pixels.
+
+## Image history in 6.1
 
 On November 4, 2026 the native Membrane gate indexed 17 synthetic windows,
 including four original JPEGs, with the pinned Google EmbeddingGemma 2

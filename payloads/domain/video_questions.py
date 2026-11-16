@@ -13,6 +13,7 @@ from .window_evidence import box_coordinates, chat_frame
 class VideoQuestions:
     def __init__(self, history, client, model):
         self.history, self.store, self.client, self.model = history, history.store, client, model
+        self.source = self.store.source_id or sorted(self.store.source_ids)
         self.tasks = {}
         self.closing = False
 
@@ -20,17 +21,17 @@ class VideoQuestions:
         if not command_id.strip() or len(command_id) > 128 or not question.strip() or len(question.encode()) > 8000:
             raise ValueError("Enter a bounded question about saved footage.")
         key = "video:" + command_id
-        request = {"question": question, "after": after, "before": before, "run": self.store.run_id, "source": self.store.source_id}
+        request = {"question": question, "after": after, "before": before, "run": self.store.run_id, "source": self.source}
         if not self.store.command(key, request):
             lower, upper = search_interval(question, after, before)
             self.store.command(key, request, {"command_id": command_id, "state": "accepted", "owner": self.store.run_id,
-                "source": self.store.source_id, "question": question, "after": lower, "before": upper})
+                "source": self.source, "question": question, "after": lower, "before": upper})
         return self.status(command_id)
 
     def status(self, command_id):
         key = "video:" + command_id
         record = self.store.command(key)
-        if not record or record["owner"] != self.store.run_id or record["source"] != self.store.source_id:
+        if not record or record["owner"] != self.store.run_id or record["source"] != self.source:
             raise ValueError("No saved-footage request has this ID for this run.")
         if record["state"] == "accepted" and key not in self.tasks:
             if self.closing or len(self.tasks) >= 4:
@@ -72,10 +73,13 @@ class VideoQuestions:
             matched |= verdict == "matched"
             t = account["snapshot"]["received_at"] if via_image else account["start_time"]
             display = datetime.fromisoformat(t).strftime("%b %d, %H:%M:%S UTC")
+            if camera := account.get("camera"):
+                display = f"{camera} · {display}"
             descriptions.append((verdict, f"{display} ({'saved image' if via_image else 'window caption'}) — {summary}"))
             citations.append({"citation": account["source_refs"][0], "run_id": account["run_id"],
                               "start_time": account["start_time"], "end_time": account["end_time"],
-                              "source": account["matched_via"], "verdict": verdict})
+                              "source": account["matched_via"], "verdict": verdict,
+                              **({"camera": camera} if camera else {})})
             # Show the best reviewed still even when the answer is uncertain or
             # negative. Its caption retains that verdict; retrieval is not proof.
             rank = {"matched": 2, "uncertain": 1, "not_matched": 0}.get(verdict, 1)
@@ -85,7 +89,7 @@ class VideoQuestions:
                     image = {**frame, "citation": account["source_refs"][0]}
                     image_rank = rank
         if not result["total"]:
-            lead = "There are no saved observations for this camera in that interval."
+            lead = "There are no saved observations for the configured cameras in that interval."
         elif not result["indexed"]:
             lead = "The saved observations in that interval are still waiting to be indexed."
         elif review_error and not descriptions:

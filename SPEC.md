@@ -1,10 +1,13 @@
-# CCTV co-worker 6.1.0
+# CCTV co-worker 6.2.0
 
 ## Product and compatibility
 
-One approved RTSP/RTSPS camera per Job. Describe visible activity in sampled
-video windows, preserve timestamps and source references, show a separate live
-preview, accept supervised monitoring goals and save observations across runs.
+One to four approved RTSP/RTSPS cameras per Job. Describe visible activity in
+sampled video windows and preserve each camera's timestamps, source references,
+live preview and saved observations. One supervised monitoring goal applies to
+all selected cameras. The original `video_source.uri` config still selects a
+single camera. `video_source.count` activates the corresponding additional
+secure stream URL fields. Duplicate camera locators are invalid.
 This replaces the previous implementation using Spark's rt_vlm sample. Previous
 graphs, detector policies, model recipes and private databases are retired.
 
@@ -35,18 +38,27 @@ invocations. Core fences their replay as `invocation_outcome_unconfirmed`; autom
 resume is not supported by this qualification. Preserve that guard. Stop releases
 the project; an explicitly new run can continue using the Job's saved captions.
 
-Register the stream, consume /v1/generate_captions SSE, cancel its request, then
-delete the stream using its request ID when available. Only 409 cleanup receives
-five bounded retries. One caption request is active per operator. Stop and goal
-changes await registration/cancellation/cleanup before replacement. Retain unknown
-registration outcomes and failed cleanup in Job state; block further registration
-until reconciled. Inference failure is explicit, never silently retried.
+Record a stable stream ID for the Job and camera slot before calling NVIDIA.
+Reuse it across registrations so NVIDIA rejects a duplicate even if an earlier
+registration reply was lost. Require the registration receipt to confirm that
+ID before captioning. The managed NVIDIA service registers without a separate
+GStreamer discovery connection; the caption pipeline opens and decodes the
+actual RTSP feed. Consume /v1/generate_captions SSE, cancel the caption request
+using its request ID when available, then delete the stream. Only 409 stream
+deletion receives five bounded attempts. Each camera owns one caption request on the shared model.
+Stop and goal changes await the cleanup of every request before replacement.
+Retain unverifiable cleanup separately for each camera slot.
+At startup reconcile all saved leases, including removed slots, before registering
+any camera. A failed feed leaves other feeds running and reports the error on its
+own tile. A run with no remaining analysis sessions reports a service failure.
 The pinned NVIDIA AssetManager reports an absent resource with HTTP 400,
 `BadParameter`, and an exact resource-specific message. Its `No such resource
 <stream-id>` and `<stream-id> already deleted because of age out policy` receipts
 prove a saved stream is gone after restart/expiry and complete cleanup. Other
-400 responses, wrong identities, transport failures, and unknown registration
-outcomes retain the ownership fence.
+400 responses, wrong identities, and transport failures retain the cleanup
+record. A legacy registration with no saved stream ID cannot be reconciled by
+ID. Clear its pending record only after confirming the owning NVIDIA process
+has exited and its live stream registrations are gone.
 An exact `InvalidParameterValue`/400 receipt naming both the saved request and
 stream as having no active caption request permits continuing to stream deletion.
 It does not prove the stream is absent. Stream deletion must independently
@@ -69,8 +81,8 @@ Save immutable caption JSON, complete source Markdown, cumulative JSON/Markdown
 reports, monitoring state and the standard final artifact. Reports/export/workspace
 are bounded to 300 current-run accounts with omissions. Source-scoped Job history
 stops at its explicit 10,000-account capacity without automatic deletion. A chronological history read returns up to twelve accounts and omissions. The separate
-question tool searches acknowledged Membrane text and image units across this Job and
-camera, constrained by the requested capture interval. It resolves relative intervals
+question tool searches acknowledged Membrane text and image units for the configured
+cameras across runs of this Job, constrained by the requested capture interval. It resolves relative intervals
 once at dispatch and preserves them through polling and retries. Old caption-only
 accounts remain searchable. Report pending indexing and sampled coverage.
 
@@ -83,20 +95,30 @@ external messaging or physical action occurs. A human reviews original video.
 
 ## Supervision
 
-Use standard Job MCP supervision. Domain tools read status, final activity, saved
-history and retained NVIDIA timing, or set the monitoring prompt. Durable caller
+Use standard Job MCP supervision. Domain tools read per-camera status, final
+activity, saved history and retained NVIDIA timing, or set the shared monitoring prompt. Durable caller
 IDs reject conflicting reuse. Preserve arbitrary visible subject/condition/negation.
 An applied prompt is separate from a later completed window; clear restores the
-configured goal. Retrospective questions never change monitoring. Chat shows the first completed window per goal revision and the start of each
-possible sighting. The read-only workspace provides newest-first all-message and
-current-goal timelines with inspectable saved images in both views. Keep the video
-at the top with run status over its upper-left corner. Only the event stream
-scrolls in the default view. Wide windows place the video on the left and events
-on the right. The monitoring goal starts collapsed and opens from the icon in
-the upper-right corner of the video. Camera identity remains accessible through
-the preview label and tooltip. Routine diagnostics remain available through Chat
-and export. History answers include a reviewed still when available, preserving
-its verdict and any image-grounded box. A positive structured verdict is required
+configured goal. Chat shows the first completed window per camera and goal
+revision and the start of each possible sighting. The read-only workspace has up
+to four live previews and newest-first event and goal timelines with
+camera-labeled saved images. Compose its dashboard with the shared web report
+template, vendored unchanged, and blueprint-owned presentation styles. Summary
+cards report connected previews, cameras with preview/analysis errors, completed
+observations in the current run and positive matches for the current goal. These
+counts do not imply incidents, acknowledged findings or exhaustive coverage.
+Keep the previews above the timeline in narrow windows and to its left in wide
+windows. Each camera card shows its name, preview health and analysis status
+separately. A camera selector and per-card focus control expand one preview;
+returning to all cameras restores the grid. Selection and resizing reuse each
+camera's existing stream and leave the all-camera timeline unchanged. Remove
+obsolete camera tiles when the configured set changes. Only the event stream
+scrolls in the default view; condense summary cards in narrow panels and hide
+them in short panels. The shared monitoring goal starts collapsed and opens
+from the target icon beside the camera selector. Preview labels and tooltips
+preserve camera identity. Routine diagnostics remain available
+through Chat and export. History answers preserve the camera, verdict and any
+image-grounded box of a reviewed still. A positive structured verdict is required
 for the goal view. SDK/Core retain lifecycle controls, public authentication and
 envelopes.
 
@@ -110,7 +132,7 @@ prevent horizontal overflow through narrow/wide resizing.
 Offline tests cover real compiled bindings, protocol parsing, source isolation,
 persistence, cancellation/cleanup fencing, goal receipts, read-only HTTP, text
 escaping, layout and native lifecycle. Live acceptance needs consecutive NVIDIA
-captions on the approved camera, goal replacement, preview, durable history and
+captions from each selected camera, goal replacement, previews, durable history and
 proven release of owned requests/streams. Prior sample results are not acceptance
 for this implementation. Measure model/window timing separately from loading,
 startup and end-to-end incident latency. Site accuracy needs labeled footage.

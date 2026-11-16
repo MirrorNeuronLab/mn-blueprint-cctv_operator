@@ -49,8 +49,35 @@
   },
   "init_config_review": {
     "required": true,
-    "instruction": "Confirm the approved camera securely before starting.",
+    "instruction": "Choose up to four cameras and enter their stream URLs securely.",
     "fields": [
+      {
+        "path": "video_source.count",
+        "label": "Camera count",
+        "type": "text",
+        "value_type": "number",
+        "role": "input",
+        "default": 1,
+        "required": false,
+        "choices": [
+          {
+            "value": 1,
+            "label": "1 camera"
+          },
+          {
+            "value": 2,
+            "label": "2 cameras"
+          },
+          {
+            "value": 3,
+            "label": "3 cameras"
+          },
+          {
+            "value": 4,
+            "label": "4 cameras"
+          }
+        ]
+      },
       {
         "path": "video_source.uri",
         "label": "Video stream URL",
@@ -62,13 +89,82 @@
           "rtsp:",
           "rtsps:"
         ],
-        "description": "Enter an approved RTSP or RTSPS camera in this secure field. The NVIDIA computer must be able to reach it."
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container."
+      },
+      {
+        "path": "video_source.camera_2.uri",
+        "label": "Video stream URL (camera 2)",
+        "type": "password",
+        "secret": true,
+        "role": "input",
+        "required": true,
+        "protocols": [
+          "rtsp:",
+          "rtsps:"
+        ],
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container.",
+        "active_when_any": [
+          {
+            "key": "video_source.count",
+            "equals": 2
+          },
+          {
+            "key": "video_source.count",
+            "equals": 3
+          },
+          {
+            "key": "video_source.count",
+            "equals": 4
+          }
+        ]
+      },
+      {
+        "path": "video_source.camera_3.uri",
+        "label": "Video stream URL (camera 3)",
+        "type": "password",
+        "secret": true,
+        "role": "input",
+        "required": true,
+        "protocols": [
+          "rtsp:",
+          "rtsps:"
+        ],
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container.",
+        "active_when_any": [
+          {
+            "key": "video_source.count",
+            "equals": 3
+          },
+          {
+            "key": "video_source.count",
+            "equals": 4
+          }
+        ]
+      },
+      {
+        "path": "video_source.camera_4.uri",
+        "label": "Video stream URL (camera 4)",
+        "type": "password",
+        "secret": true,
+        "role": "input",
+        "required": true,
+        "protocols": [
+          "rtsp:",
+          "rtsps:"
+        ],
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container.",
+        "active_when_any": [
+          {
+            "key": "video_source.count",
+            "equals": 4
+          }
+        ]
       },
       {
         "path": "video_source.name",
-        "label": "Camera name",
+        "label": "First camera name",
         "type": "text",
-        "default": "Camera",
+        "default": "Camera 1",
         "required": false
       },
       {
@@ -94,7 +190,7 @@
     "adapter": "external-url",
     "node_id": "camera_operator",
     "service_name": "cctv-operator-web-ui",
-    "description": "Read-only live video and completed NVIDIA video-window observations.",
+    "description": "Read-only live previews and completed NVIDIA observations for the configured cameras.",
     "reads": [
       "monitoring_state.json",
       "cctv_report.json"
@@ -105,23 +201,50 @@
     }
   },
   "starter_questions": [
-    "What has the camera observed?",
+    "What have the cameras observed?",
     "Did anyone wear a red coat in the past hour?",
-    "What camera and goal do you need?",
+    "Which cameras can you monitor?",
     "Explain the latest observation’s limits."
   ],
   "setup_guide": {
     "schema": "otterdesk.setup_guide.v1",
-    "introduction": "I review camera activity with NVIDIA video analysis and save observations with their video times. Enter an approved camera in the secure Video stream URL field. A live preview is separate from completed analysis.",
+    "introduction": "I monitor up to four cameras and save observations with their capture times. Start by choosing how many cameras to monitor.",
     "prompt_file": "@/payloads/prompts/setup.md",
     "sample": {
       "available": false
     },
     "real": {
-      "introduction": "Enter one approved RTSP camera in the secure field, then optionally describe what to watch for.",
+      "introduction": "Choose how many cameras to monitor, then enter each approved RTSP or RTSPS URL in its secure field.",
       "values": {}
     },
     "fields": [
+      {
+        "path": "video_source.count",
+        "label": "Camera count",
+        "type": "text",
+        "value_type": "number",
+        "role": "input",
+        "default": 1,
+        "required": false,
+        "choices": [
+          {
+            "value": 1,
+            "label": "1 camera"
+          },
+          {
+            "value": 2,
+            "label": "2 cameras"
+          },
+          {
+            "value": 3,
+            "label": "3 cameras"
+          },
+          {
+            "value": 4,
+            "label": "4 cameras"
+          }
+        ]
+      },
       {
         "path": "video_source.uri",
         "label": "Video stream URL",
@@ -133,13 +256,82 @@
           "rtsp:",
           "rtsps:"
         ],
-        "description": "Enter an approved RTSP or RTSPS camera in this secure field. The NVIDIA computer must be able to reach it."
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container."
+      },
+      {
+        "path": "video_source.camera_2.uri",
+        "label": "Video stream URL (camera 2)",
+        "type": "password",
+        "secret": true,
+        "role": "input",
+        "required": true,
+        "protocols": [
+          "rtsp:",
+          "rtsps:"
+        ],
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container.",
+        "active_when_any": [
+          {
+            "key": "video_source.count",
+            "equals": 2
+          },
+          {
+            "key": "video_source.count",
+            "equals": 3
+          },
+          {
+            "key": "video_source.count",
+            "equals": 4
+          }
+        ]
+      },
+      {
+        "path": "video_source.camera_3.uri",
+        "label": "Video stream URL (camera 3)",
+        "type": "password",
+        "secret": true,
+        "role": "input",
+        "required": true,
+        "protocols": [
+          "rtsp:",
+          "rtsps:"
+        ],
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container.",
+        "active_when_any": [
+          {
+            "key": "video_source.count",
+            "equals": 3
+          },
+          {
+            "key": "video_source.count",
+            "equals": 4
+          }
+        ]
+      },
+      {
+        "path": "video_source.camera_4.uri",
+        "label": "Video stream URL (camera 4)",
+        "type": "password",
+        "secret": true,
+        "role": "input",
+        "required": true,
+        "protocols": [
+          "rtsp:",
+          "rtsps:"
+        ],
+        "description": "Enter an approved RTSP or RTSPS URL reachable from the NVIDIA computer and its video analysis container.",
+        "active_when_any": [
+          {
+            "key": "video_source.count",
+            "equals": 4
+          }
+        ]
       },
       {
         "path": "video_source.name",
-        "label": "Camera name",
+        "label": "First camera name",
         "type": "text",
-        "default": "Camera",
+        "default": "Camera 1",
         "required": false
       },
       {

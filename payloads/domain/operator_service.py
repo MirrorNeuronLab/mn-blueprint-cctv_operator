@@ -1,4 +1,4 @@
-"""Own the streaming task, read-only workspace and internal MCP listeners."""
+"""Own camera monitoring, the read-only workspace and internal MCP listeners."""
 
 import asyncio
 import fcntl
@@ -8,15 +8,17 @@ import threading
 
 import uvicorn
 
-from .analysis import Analysis
+from .analysis import Analysis, request_key
+from .camera_sources import MAX_CAMERAS
 from .caption_store import CaptionStore
+from .monitoring import Monitoring
 from .preview import Preview
 from .publication import Publisher
 from .realtime_client import VLMClient, safe_error
 from .settings import camera_settings, service_url
 from .web import create_app
 from .video_questions import VideoQuestions
-from .visual_history import VisualHistory
+from .visual_history import CameraHistory
 
 
 def listener(host, port):
@@ -53,16 +55,21 @@ class Operator:
         self.started = threading.Event()
         try:
             from mn_sdk_mcp.cli import default_host
-            self.store = CaptionStore(state_dir / "captions.sqlite3", job_id=job_id, run_id=run_id,
-                                      source_id=self.settings.source_id,
-                                      max_records=config.get("retention", {}).get("max_captions", 10000))
+            store_options = {"job_id": job_id, "run_id": run_id,
+                             "max_records": config.get("retention", {}).get("max_captions", 10000)}
+            journal = state_dir / "captions.sqlite3"
+            self.camera_stores = {
+                camera.slot: CaptionStore(journal, source_id=camera.source_id, **store_options)
+                for camera in self.settings
+            }
+            self.store = CaptionStore(journal, source_ids=[camera.source_id for camera in self.settings], **store_options)
             from mn_sdk_mcp import JobExchangeStore
             self.exchange = JobExchangeStore(self.run_dir / "operator_activity.sqlite3", allowed_root=self.run_dir,
                                              job_id=job_id, blueprint_id="cctv_operator", run_id=run_id)
             self.publisher = Publisher(self.run_dir, self.store, self.exchange)
-            self.history = VisualHistory(config, self.store)
+            self.history = CameraHistory(config, self.store, self.camera_stores.values())
             self.index_error = False
-            self.preview = Preview()
+            self.previews = {camera.slot: Preview() for camera in self.settings}
             self.web_socket = listener(host, port)
             # Core's published internal range forwards to its container interface.
             # The SDK keeps native execution on loopback and honors that proxy.
@@ -73,14 +80,14 @@ class Operator:
             raise
 
     def snapshot(self):
-        result = self.analysis.snapshot() if hasattr(self, "analysis") else {"session": {"status": "starting"}, "captions": []}
+        result = self.monitoring.snapshot()
         total, indexed = self.store.index_counts(self.history.model)
         summary = f"Saved footage search · {indexed} of {total} windows indexed."
         if self.index_error:
             summary += " Indexing is unavailable. Check Membrane and the model cache. Retrying."
-        return {**result, "run_id": self.run_id, "preview": self.preview.status(), "phase": self.phase, "error": self.failure,
+        return {**result, "run_id": self.run_id, "preview": result["cameras"][0]["preview"], "phase": self.phase, "error": self.failure,
                 "history": {"total": total, "indexed": indexed, "summary": summary},
-                "service": "NVIDIA vss-rt-vlm", "camera": self.settings.name,
+                "service": "NVIDIA vss-rt-vlm", "camera": self.settings[0].name,
                 "limitation": "Sampled video descriptions require human review. The live preview is separate from analyzed windows."}
 
     def start(self):
@@ -105,17 +112,17 @@ class Operator:
             async with asyncio.timeout(self.config.get("vlm", {}).get("startup_timeout_seconds", 600)):
                 while True:
                     try:
-                        await self.client.model()
+                        model = await self.client.model()
                         break
                     except Exception:
                         await asyncio.sleep(2)
-            await self.analysis.start()
+            await self.monitoring.start(model)
             self.phase = "running"
             while not self.shutdown.is_set():
                 # Goal changes replace the task under the same serial lock.
                 # The original task ending is not a failure of its replacement.
-                if self.analysis.task.done() and not self.analysis.lock.locked():
-                    self.failure = self.analysis.state.get("error") or "The live analysis stopped unexpectedly. Try again."
+                if self.monitoring.finished and not self.monitoring.lock.locked():
+                    self.failure = self.monitoring.session()["error"] or "Live analysis stopped unexpectedly. Try again."
                     self.phase = "error"
                     return
                 await asyncio.sleep(.1)
@@ -123,8 +130,8 @@ class Operator:
             raise
         except Exception as error:
             self.failure = safe_error(error)
-            self.analysis.update(status="error", error=self.failure)
             self.phase = "error"
+            self.publisher.status({**self.monitoring.session(), "status": "error", "error": self.failure})
 
     async def _index(self):
         while not self.shutdown.is_set():
@@ -148,10 +155,13 @@ class Operator:
         self.loop = asyncio.get_running_loop()
         self.shutdown = asyncio.Event()
         self.client = VLMClient(self.base_url)
-        self.analysis = Analysis(self.client, self.settings, self.store, self.publisher.caption, self.publisher.status,
-                                 preview=self.preview)
-        self.questions = VideoQuestions(self.history, self.client, lambda: self.analysis.state["model"])
-        self.analysis.configured_prompt = self.settings.prompt
+        cameras = {
+            camera.slot: Analysis(self.client, camera, self.camera_stores[camera.slot], self.publisher.caption,
+                                  lambda _state: self.monitoring.publish_status(), preview=self.previews[camera.slot])
+            for camera in self.settings
+        }
+        self.monitoring = Monitoring(self.client, self.store, cameras, self.publisher.status)
+        self.questions = VideoQuestions(self.history, self.client, lambda: self.monitoring.model)
         mcp = create_operator_mcp_server(self)
         options = dict(getattr(mcp, "_mn_http_options", {}))
         options.pop("port", None)
@@ -169,9 +179,9 @@ class Operator:
         controls = self.mcp_task = asyncio.create_task(self.mcp_server.serve(sockets=[self.mcp_socket]))
         capture = None
         indexer = asyncio.create_task(self._index())
-        errors = []
         try:
-            await asyncio.to_thread(self.preview.start, self.settings.uri)
+            for camera in self.settings:
+                self.previews[camera.slot].start(camera.uri)
             capture = asyncio.create_task(self._capture())
             self.started.set()
             await self.shutdown.wait()
@@ -181,21 +191,20 @@ class Operator:
             if capture:
                 capture.cancel()
                 await asyncio.gather(capture, return_exceptions=True)
-            await self.questions.close()
-            await indexer
-            for operation in (self.analysis.close, self.client.http.aclose):
-                try:
-                    await operation()
-                except Exception as error:
-                    errors.append(error)
+            results = await asyncio.gather(
+                self.questions.close(), indexer, self.monitoring.close(),
+                *(asyncio.to_thread(preview.stop) for preview in self.previews.values()),
+                return_exceptions=True,
+            )
+            errors = [result for result in results if isinstance(result, BaseException)]
             try:
-                await asyncio.to_thread(self.preview.stop)
+                await self.client.http.aclose()
             except Exception as error:
                 errors.append(error)
             self.web_server.should_exit = self.mcp_server.should_exit = True
             await asyncio.gather(web, controls, return_exceptions=True)
             self.phase = "error" if self.failure or errors else "stopped"
-            if errors:
+            if errors and self.failure is None:
                 self.failure = "Couldn't release all camera resources. Check NVIDIA before starting again."
 
     def healthy(self):
@@ -212,8 +221,8 @@ class Operator:
                 self.thread.join(timeout=90)
                 if self.thread.is_alive():
                     raise RuntimeError("The camera operator did not stop before its cleanup deadline.")
-            if self.store.state("active_request"):
-                raise RuntimeError("The NVIDIA camera request still needs cleanup.")
+            if any(self.store.state(request_key(slot)) for slot in range(1, MAX_CAMERAS + 1)):
+                raise RuntimeError(self.failure or "One or more NVIDIA camera requests still need cleanup.")
         finally:
             if not self.thread or not self.thread.is_alive():
                 self.close_sockets()

@@ -4,7 +4,7 @@
   "manual": "@/knowledge/user_manual.md",
   "tools": {
     "get_operator_status": {
-      "description": "Read current NVIDIA analysis health, the separate preview and latest completed video-window description. A read never starts capture.",
+      "description": "Read per-camera NVIDIA analysis and preview health and the latest completed video-window description. A read never starts capture.",
       "effect": "read",
       "inputSchema": {
         "type": "object",
@@ -74,7 +74,7 @@
       }
     },
     "get_operator_activity": {
-      "description": "Read the first observation for each goal and the start of each possible goal sighting.",
+      "description": "Read each camera's first observation for a goal and the start of each possible sighting.",
       "effect": "read",
       "inputSchema": {
         "type": "object",
@@ -120,7 +120,7 @@
       }
     },
     "set_monitoring_instruction": {
-      "description": "Change the visible condition in future NVIDIA video windows. Preserve the exact subject and negation. For a past-video question use answer_video_question. Clearing restores the configured goal. A completed receipt confirms the goal was applied. A matching observation arrives separately.",
+      "description": "Change the visible condition for future windows from all configured cameras. Preserve the exact subject and negation. For a past-video question use answer_video_question. Clearing restores the configured goal. A completed receipt confirms the goal was applied. A matching observation arrives separately.",
       "effect": "monitoring",
       "inputSchema": {
         "type": "object",
@@ -175,7 +175,7 @@
         "id_argument": "operation_id",
         "id_field": "command_id",
         "poll_interval_ms": 500,
-        "timeout_seconds": 30,
+        "timeout_seconds": 90,
         "arguments": {
           "kind": "command"
         }
@@ -254,7 +254,7 @@
       }
     },
     "answer_video_question": {
-      "description": "Search saved footage for a retrospective question. Rank indexed images and captions in Membrane, then inspect candidates. Preserve the original question. For relative times such as past hour, leave after and before empty so the co-worker resolves them at request time. Explicit bounds are timezone-qualified ISO capture times. Return the completed answer, citations and coverage. Reads never change monitoring.",
+      "description": "Search saved footage from the configured cameras for a retrospective question. Rank indexed images and captions in Membrane, then inspect candidates. Preserve the original question. For relative times such as past hour, leave after and before empty so the co-worker resolves them at request time. Explicit bounds are timezone-qualified ISO capture times. Return the completed answer, citations and coverage. Reads never change monitoring.",
       "effect": "read",
       "inputSchema": {
         "type": "object",

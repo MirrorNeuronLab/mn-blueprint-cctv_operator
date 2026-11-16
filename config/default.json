@@ -2,8 +2,18 @@
   "standard_version": "1.0",
   "mode": "live",
   "video_source": {
+    "count": 1,
     "uri": "",
-    "name": "Camera"
+    "name": "Camera 1",
+    "camera_2": {
+      "uri": ""
+    },
+    "camera_3": {
+      "uri": ""
+    },
+    "camera_4": {
+      "uri": ""
+    }
   },
   "analysis": {
     "chunk_duration": 4,

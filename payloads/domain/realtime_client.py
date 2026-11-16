@@ -48,18 +48,19 @@ class VLMClient:
             raise ValueError("NVIDIA has no loaded model.")
         return models[0]["id"]
 
-    async def add_stream(self, settings):
-        response = await self.http.post("v1/streams/add", timeout=20, json={
-            "streams": [{"liveStreamUrl": settings.uri, "description": "OtterDesk CCTV co-worker"}],
-        })
+    async def add_stream(self, settings, stream_id):
+        try:
+            response = await self.http.post("v1/streams/add", timeout=20, json={
+                "streams": [{"id": stream_id, "liveStreamUrl": settings.uri, "description": "OtterDesk CCTV co-worker"}],
+            })
+        except httpx.TimeoutException:
+            raise CameraStateError("NVIDIA timed out registering the camera. Check the camera connection and try again.") from None
         response.raise_for_status()
         body = response.json()
-        if body.get("errors") or not body.get("results"):
-            raise ValueError("NVIDIA could not register the camera. Check its connection.")
-        identity = body["results"][0].get("id")
-        if not isinstance(identity, str) or not identity or len(identity) > 256:
-            raise ValueError("NVIDIA returned an invalid stream identity.")
-        return identity
+        if not isinstance(body, dict) or body.get("errors"):
+            raise CameraStateError("NVIDIA couldn't register the camera. Check the camera connection and try again.")
+        if body.get("results") != [{"id": stream_id}]:
+            raise CameraStateError("NVIDIA didn't confirm the requested camera stream identity.")
 
     @staticmethod
     def caption_payload(stream_id, model, settings):

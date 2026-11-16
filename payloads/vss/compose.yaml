@@ -42,6 +42,9 @@ services:
       VLM_DEFAULT_NUM_FRAMES_PER_SECOND_OR_FIXED_FRAMES_CHUNK: '8'
       VLM_TRUST_REMOTE_CODE: 'true'
       RTVI_MODEL_PATH_ALLOWLIST: ${MODEL_PATH:-git:https://huggingface.co/nvidia/Cosmos3-Edge}
+      # Register the stream without waiting for an extra GStreamer discovery
+      # connection. The caption pipeline still opens and validates the feed.
+      VSS_SKIP_INPUT_MEDIA_VERIFICATION: '1'
       MESSAGE_BUS: ''
       ERROR_BUS: ''
       KAFKA_ENABLED: 'false'

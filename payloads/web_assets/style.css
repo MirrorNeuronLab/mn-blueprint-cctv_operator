@@ -1,90 +1,237 @@
-/* Camera presentation only. Shared tokens, controls and responsive columns live
+/* CCTV presentation only. Shared tokens, controls and responsive columns live
    in the unchanged report-template.css from mn_web_report_skill. */
+.cctv-dashboard > .workspace-layout {
+  grid-template-rows: auto auto minmax(0, auto) minmax(220px, 1fr);
+  background: color-mix(in srgb, var(--od-muted) 45%, var(--od-background));
+}
+.dashboard-heading,
+.overview-stats {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.dashboard-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.dashboard-heading > div {
+  min-width: 0;
+}
+.dashboard-heading h1 {
+  font-size: 20px;
+  line-height: 1.25;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.dashboard-heading p {
+  margin: 4px 0 0;
+}
+.monitor-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--od-muted-foreground);
+}
+.monitor-status::before,
+.camera-status::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: currentColor;
+}
+[data-state="running"] {
+  color: var(--od-success);
+}
+[data-state="error"],
+[data-state="degraded"] {
+  color: var(--od-warning);
+}
+.overview-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+.overview-stat {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+  padding: 8px 10px;
+}
+.overview-stat dt {
+  font-size: 11px;
+  color: var(--od-muted-foreground);
+}
+.overview-stat dd {
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.04em;
+}
 .workspace-primary {
   position: relative;
 }
+.cameras-heading {
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+}
+.camera-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+  max-width: 65%;
+}
+#camera-select {
+  width: 160px;
+  min-width: 0;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+#camera-grid {
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  gap: 8px;
+  max-height: 38dvh;
+}
+#camera-grid.multiple {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.camera-card {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  background: var(--od-background);
+}
+.camera-card[data-attention="true"] {
+  border-color: color-mix(in srgb, var(--od-warning) 45%, var(--od-border));
+}
 .video-stage {
   position: relative;
-  flex-shrink: 0;
+  flex: 1 1 auto;
   overflow: hidden;
   min-width: 0;
   min-height: 0;
-  border-radius: var(--od-radius);
   background: #080b0f;
   aspect-ratio: 16 / 9;
-  max-height: 44dvh;
 }
-#camera-image {
+.camera-image {
   display: block;
   width: 100%;
   height: 100%;
   object-fit: contain;
-  object-position: center top;
+  object-position: center;
 }
-.video-overlay {
+.preview-badge {
   position: absolute;
   top: 8px;
   left: 8px;
-  color: white;
+  max-width: calc(100% - 48px);
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #f8fafc;
+  background: #0f172acc;
+  font-size: 10px;
+  line-height: 16px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   pointer-events: none;
 }
-#status,
-.monitoring-goal > summary {
-  border: 1px solid #ffffff40;
-  background: #0f172ae6;
-  border-radius: var(--od-control-radius);
-}
-#status {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 2px 7px;
-  font-size: 11px;
-}
-#status::before {
-  content: "";
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: #cbd5e1;
-}
-#status[data-state="running"]::before {
-  background: #6ee7b7;
-}
-#status[data-state="error"]::before {
-  background: #fcd34d;
-}
-.monitoring-goal {
+.workspace-ui .focus-camera {
   position: absolute;
   z-index: 1;
-  top: 8px;
-  right: 8px;
-  width: min(20rem, calc(100% - 16px));
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  min-height: 28px;
+  padding: 0;
+  color: #f8fafc;
+  border-color: #ffffff40;
+  background: #0f172acc;
+}
+.workspace-ui .focus-camera:hover {
+  background: #334155;
+}
+.focus-camera:focus-visible {
+  outline-color: white;
+  outline-offset: -3px;
+}
+.camera-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: 2px 10px;
+  padding: 8px 10px;
+}
+.camera-name {
+  min-width: 0;
+  max-width: 100%;
+  flex: 1 1 80px;
   margin: 0;
-  pointer-events: none;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 12px;
+}
+.camera-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 18px;
+}
+.monitoring-goal {
+  flex-shrink: 0;
+  z-index: 3;
+  margin: 0;
 }
 .monitoring-goal > summary {
   display: grid;
   place-items: center;
   width: var(--od-control-height);
   height: var(--od-control-height);
-  margin-left: auto;
   padding: 0;
   list-style: none;
-  color: white;
-  pointer-events: auto;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-control-radius);
+  background: var(--od-background);
+  color: var(--od-foreground);
 }
 .monitoring-goal > summary::-webkit-details-marker {
   display: none;
 }
 .monitoring-goal > summary:hover,
 .monitoring-goal[open] > summary {
-  background: #334155;
-}
-.monitoring-goal > summary:focus-visible {
-  outline-color: white;
+  background: var(--od-muted);
 }
 .goal-content {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: min(24rem, 100%);
   max-height: min(15rem, calc(100dvh - 84px));
   margin-top: 6px;
   overflow: auto;
@@ -94,7 +241,6 @@
   border-radius: var(--od-radius);
   background: var(--od-background);
   box-shadow: 0 2px 8px #0002;
-  pointer-events: auto;
 }
 .goal-content h2 {
   font-size: 12px;
@@ -103,24 +249,45 @@
   margin: 4px 0 0;
   white-space: pre-wrap;
 }
-.workspace-ui #preview-state {
+.workspace-ui .preview-state {
   position: absolute;
   inset: auto 0 0;
   margin: 0;
   padding: 18px 10px 8px;
   background: linear-gradient(transparent, #000b);
   color: #f8fafc;
-  font-size: 12px;
+  font-size: 11px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.workspace-ui .preview-note {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 11px;
 }
 .workspace-ui #error {
   flex-shrink: 0;
-  max-height: 18dvh;
+  max-height: 10dvh;
   overflow: auto;
   margin: 0;
 }
+.event-stream {
+  padding: 12px;
+  border: 1px solid var(--od-border);
+  border-radius: var(--od-radius);
+  background: var(--od-background);
+}
 .timeline-heading {
   flex-shrink: 0;
-  margin-bottom: 10px;
+  flex-wrap: nowrap;
+  margin-bottom: 8px;
+}
+.timeline-heading h2 {
+  min-width: 0;
+}
+.timeline-heading .workspace-button {
+  flex-shrink: 0;
 }
 .timeline-actions {
   display: flex;
@@ -129,6 +296,11 @@
   justify-content: space-between;
   gap: 6px;
   max-width: 100%;
+  flex-shrink: 0;
+}
+.workspace-ui .timeline-scope {
+  margin: 8px 0 12px;
+  font-size: 11px;
 }
 #caption-count {
   margin-left: 5px;
@@ -188,6 +360,14 @@
   font-size: 11px;
   color: var(--od-muted-foreground);
   font-variant-numeric: tabular-nums;
+}
+.caption-camera {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
 }
 .finding-label {
   font-size: 11px;
@@ -312,23 +492,84 @@
   white-space: pre-wrap;
 }
 @media (min-width: 960px) {
-  .video-stage {
-    flex-shrink: 1;
-    max-height: none;
+  .cctv-dashboard > .workspace-layout {
+    grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 16px;
+    padding: 24px;
   }
-  .timeline-actions {
-    flex-basis: 100%;
+  .dashboard-heading h1 {
+    font-size: 26px;
+  }
+  .overview-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .overview-stat {
+    display: block;
+    padding: 12px 16px;
+  }
+  .overview-stat dd {
+    margin-top: 6px;
+    font-size: 28px;
+  }
+  #camera-grid {
+    flex: 1;
+    max-height: none;
+    gap: 12px;
+  }
+  .camera-info {
+    padding: 12px;
+  }
+  .event-stream {
+    padding: 16px;
   }
 }
 @media (pointer: coarse) {
   .monitoring-goal > summary {
     width: 44px;
   }
+  .workspace-ui .focus-camera {
+    width: 44px;
+    min-height: 44px;
+  }
 }
 @media (max-width: 380px) {
   .workspace-ui {
     --od-panel-padding: 10px;
-    --od-gap: 10px;
+    --od-gap: 8px;
+  }
+  .dashboard-heading h1 {
+    font-size: 17px;
+  }
+  .dashboard-heading p {
+    display: none;
+  }
+  .overview-stat dd {
+    font-size: 18px;
+  }
+  .camera-info {
+    padding: 5px 7px;
+    gap: 0 4px;
+  }
+  .camera-name,
+  .camera-status {
+    font-size: 10px;
+    line-height: 16px;
+  }
+  .camera-name {
+    flex-basis: 100%;
+  }
+  .preview-badge {
+    top: 6px;
+    left: 6px;
+    padding-inline: 4px;
+  }
+  .event-stream {
+    padding: 8px;
+  }
+  .timeline-heading {
+    gap: 4px;
   }
   .caption-body {
     gap: 8px;
@@ -337,6 +578,26 @@
     width: 100%;
   }
   .workspace-segments span {
-    padding-inline: 7px;
+    padding-inline: 5px;
+    font-size: 11px;
+  }
+}
+@media (max-width: 959px) and (max-height: 560px) {
+  .cctv-dashboard > .workspace-layout {
+    grid-template-rows: auto minmax(0, auto) minmax(12rem, 1fr);
+  }
+  .overview-stats,
+  .dashboard-heading p,
+  .workspace-ui .preview-note {
+    display: none;
+  }
+  #camera-grid {
+    max-height: 34dvh;
+  }
+  .camera-name {
+    flex-basis: 60px;
+  }
+  .camera-info {
+    padding-block: 4px;
   }
 }

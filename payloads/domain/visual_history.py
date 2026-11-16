@@ -5,6 +5,7 @@ import json
 import re
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from functools import cache
 from itertools import zip_longest
 
 from mn_context_engine_sdk import MediaReference
@@ -55,12 +56,15 @@ class VisualHistory:
         caption = self.store.next_to_index(self.model)
         if caption is None:
             return False
+        self.index(caption)
+        return True
+
+    def index(self, caption):
         try:
             self._index(caption)
         except Exception:
             self.store.retry_index(caption["id"])
             raise
-        return True
 
     def _index(self, caption):
         identity = hashlib.sha256(caption["id"].encode()).hexdigest()
@@ -96,7 +100,7 @@ class VisualHistory:
                     source["snapshot"] = snapshot
             self.store.indexed(caption["id"], self.model, sources)
 
-    def search(self, question, after, before):
+    def search(self, question, after, before, *, embed_query=None):
         rows = self.store.index_scope(after, before, self.model)
         selected = {}
         indexed = 0
@@ -125,7 +129,7 @@ class VisualHistory:
         # Source units were registered and embedded on the write path. Search the native
         # index directly, without reading or re-registering thousands of originals per question.
         query = RELATIVE.sub("", question).strip(" .?,") or question
-        vector = self.embeddings.embed_query(query)
+        vector = (embed_query or self.embeddings.embed_query)(query)
         # Repeated generic captions should not outvote a relevant image. Ask Membrane
         # to rank actual images semantically and caption units with native hybrid search.
         lanes = []
@@ -159,4 +163,36 @@ class VisualHistory:
                 admitted.add(identity)
             if len(admitted) == 4:
                 break
+        return result
+
+
+class CameraHistory:
+    """Search the configured cameras while preserving each existing index scope."""
+
+    def __init__(self, config, store, camera_stores, *, embeddings=None):
+        self.store = store
+        self.embeddings = embeddings if embeddings is not None else CameraEmbeddings()
+        self.cameras = {
+            camera.source_id: VisualHistory(config, camera, embeddings=self.embeddings)
+            for camera in camera_stores
+        }
+        self.model = next(iter(self.cameras.values())).model
+
+    def index_next(self):
+        caption = self.store.next_to_index(self.model)
+        if caption is None:
+            return False
+        self.cameras[caption["source_id"]].index(caption)
+        return True
+
+    def search(self, question, after, before):
+        embed_query = cache(self.embeddings.embed_query)
+        pages = [camera.search(question, after, before, embed_query=embed_query) for camera in self.cameras.values()]
+        # Give each camera's best candidate a chance within the existing review budget.
+        candidates = [row for lane in zip_longest(*(page["observations"] for page in pages)) for row in lane if row]
+        result = {"observations": candidates[:4], "after": after, "before": before,
+                  "total": sum(page["total"] for page in pages), "indexed": sum(page["indexed"] for page in pages)}
+        limitations = dict.fromkeys(page["limitation"] for page in pages if page.get("limitation"))
+        if limitations:
+            result["limitation"] = " ".join(limitations)
         return result

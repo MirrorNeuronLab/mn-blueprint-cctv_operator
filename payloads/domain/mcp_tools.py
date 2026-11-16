@@ -22,14 +22,20 @@ def create_operator_mcp_server(operator, *, server_factory=None):
     def get_operator_status(question: str = "") -> dict:
         snapshot = operator.snapshot()
         session = snapshot["session"]
+        cameras = snapshot["cameras"]
         latest = next((c for c in reversed(snapshot["captions"])
                        if c.get("instruction_revision", 0) == session.get("instruction_revision", 0)), None)
-        return {"ready": snapshot["phase"] == "running" and session["status"] == "running", "connected": snapshot["preview"]["connected"],
+        summary = latest["content"] if latest else "No completed video observations yet."
+        if latest and len(cameras) > 1:
+            summary = f"{latest['camera']} · {summary}"
+        return {"ready": snapshot["phase"] == "running" and operator.monitoring.ready,
+                "connected": any(camera["preview"]["connected"] for camera in cameras),
                 "status": session["status"], "state": session["status"],
-                "summary": (snapshot["error"] or (latest["content"] if latest else "No completed video observations yet.")),
+                "summary": snapshot["error"] or summary,
                 "instruction": session.get("instruction"), "instruction_revision": session.get("instruction_revision", 0),
                 "observed_at": latest["end_time"] if latest else None,
                 "understanding": latest, "pipeline": {"analysis": session, "preview": snapshot["preview"],
+                                                      "cameras": cameras,
                                                       "history": snapshot.get("history")},
                 "warning": snapshot["limitation"]}
 
@@ -72,7 +78,7 @@ def create_operator_mcp_server(operator, *, server_factory=None):
     @domain_tool(server, name="set_monitoring_instruction", structured_output=True)
     async def set_monitoring_instruction(command_id: str, instruction: str = "", clear: bool = False,
                                          analyze_now: bool = True) -> dict:
-        return await operator.analysis.change_goal(command_id, instruction, clear)
+        return await operator.monitoring.change_goal(command_id, instruction, clear)
 
     @domain_tool(server, name="get_operation_status", structured_output=True)
     async def get_operation_status(operation_id: str, kind: Literal["command", "video"] = "command") -> dict:

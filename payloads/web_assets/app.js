@@ -1,10 +1,36 @@
 const byId = (id) => document.getElementById(id);
-const labels = {starting: "Preparing", ready: "Ready", running: "Running", stopping: "Stopping", stopped: "Stopped", error: "Needs review"};
+const labels = {starting: "Preparing", ready: "Ready", running: "Running", degraded: "Needs review", stopping: "Stopping", stopped: "Stopped", error: "Needs review"};
 let current;
 let view = "all";
+let selectedCamera = "all";
 let stopped = false;
 let olderPage = null;
 let scope = "";
+const cameraTiles = new Map();
+
+function needsReview(camera) {
+  return camera.status === "error" || Boolean(camera.error || camera.preview.error);
+}
+
+function overview(data) {
+  const cameras = data.cameras;
+  const attention = cameras.filter(needsReview).length;
+  byId("preview-count").textContent = `${cameras.filter(camera => camera.preview.connected).length} / ${cameras.length}`;
+  byId("attention-count").textContent = String(attention);
+  byId("attention-count").dataset.state = attention ? "error" : "ready";
+  byId("observation-count").textContent = String(data.session.total_captions || 0);
+  byId("observation-count").title = "Completed observations in this run";
+  byId("match-count").textContent = data.has_target ? String(data.match_count || 0) : "—";
+  byId("match-count").title = data.has_target ? "Possible matches for the current monitoring goal" : "Set a monitoring goal in Chat";
+  const status = byId("monitor-status");
+  status.dataset.state = attention ? "degraded" : data.session.status;
+  status.textContent = labels[status.dataset.state] || "Preparing";
+}
+
+function selectCamera(value) {
+  selectedCamera = value;
+  if (current) renderCameras(current.cameras);
+}
 
 function entry(caption) {
   const item = document.createElement("li");
@@ -20,6 +46,13 @@ function entry(caption) {
   item.dataset.match = caption.goal_match || "uncertain";
   const header = document.createElement("div");
   header.className = "caption-header";
+  if (caption.camera) {
+    const camera = document.createElement("span");
+    camera.className = "caption-camera";
+    camera.textContent = caption.camera;
+    camera.title = caption.camera;
+    header.append(camera);
+  }
   header.append(time);
   if (caption.goal_match === "matched") {
     const label = document.createElement("span");
@@ -52,14 +85,15 @@ function entry(caption) {
     const image = document.createElement("img");
     image.loading = "lazy";
     image.src = `api/windows/${encodeURIComponent(caption.id)}/snapshot.jpg`;
-    image.alt = "Saved camera preview from this observation window";
+    image.alt = caption.camera ? `Saved preview from ${caption.camera}` : "Saved camera preview";
     const label = document.createElement("span");
     label.textContent = caption.snapshot.bbox_2d ? "View highlighted frame" : "View frame";
     button.append(image, label);
     button.addEventListener("click", () => {
       byId("evidence-image").src = image.src;
       byId("evidence-image").alt = image.alt;
-      byId("evidence-caption").textContent = `Preview received ${new Date(caption.snapshot.received_at).toLocaleString()} during this window.${caption.snapshot.bbox_2d ? " Box estimated on this image." : ""}`;
+      const source = caption.camera ? `${caption.camera} · ` : "";
+      byId("evidence-caption").textContent = `${source}Preview received ${new Date(caption.snapshot.received_at).toLocaleString()} during this window.${caption.snapshot.bbox_2d ? " Box estimated on this image." : ""}`;
       byId("evidence-description").textContent = content;
       byId("evidence-dialog").showModal();
     });
@@ -107,23 +141,87 @@ function transcript(data) {
   scroll.hidden = !rows.length;
 }
 
+function renderCameras(cameras) {
+  const grid = byId("camera-grid");
+  const selector = byId("camera-select");
+  if (!cameras.some(camera => String(camera.slot) === selectedCamera)) selectedCamera = "all";
+  grid.classList.toggle("multiple", selectedCamera === "all" && cameras.length > 1);
+  const slots = new Set(cameras.map(camera => camera.slot));
+  for (const option of [...selector.options].slice(1)) {
+    if (!slots.has(Number(option.value))) option.remove();
+  }
+  for (const [slot, tile] of cameraTiles) {
+    if (!slots.has(slot)) {
+      tile.querySelector(".camera-image").removeAttribute("src");
+      tile.remove();
+      cameraTiles.delete(slot);
+    }
+  }
+  for (const camera of cameras) {
+    let tile = cameraTiles.get(camera.slot);
+    if (!tile) {
+      tile = byId("camera-tile").content.firstElementChild.cloneNode(true);
+      tile.querySelector(".camera-image").src = `api/preview.mjpeg?camera=${camera.slot}`;
+      grid.append(tile);
+      cameraTiles.set(camera.slot, tile);
+      tile.querySelector(".focus-camera").addEventListener("click", () => {
+        selectCamera(selectedCamera === "all" ? String(camera.slot) : "all");
+      });
+    }
+    let option = [...selector.options].find(option => option.value === String(camera.slot));
+    if (!option) {
+      option = document.createElement("option");
+      option.value = String(camera.slot);
+      selector.append(option);
+    }
+    if (option.textContent !== camera.camera) option.textContent = camera.camera;
+    tile.hidden = selectedCamera !== "all" && selectedCamera !== String(camera.slot);
+    tile.dataset.attention = String(needsReview(camera));
+    tile.setAttribute("aria-label", `Live video · ${camera.camera}`);
+    tile.title = camera.camera;
+    tile.querySelector(".camera-image").alt = `Current camera preview · ${camera.camera}`;
+    const name = tile.querySelector(".camera-name");
+    if (name.textContent !== camera.camera) name.textContent = camera.camera;
+    name.title = camera.camera;
+    const status = tile.querySelector(".camera-status");
+    const label = labels[camera.status] || "Preparing";
+    if (status.textContent !== label) status.textContent = label;
+    status.dataset.state = camera.status;
+    status.title = `Analysis: ${label}`;
+    const badge = tile.querySelector(".preview-badge");
+    const previewLabel = camera.preview.connected ? "Live preview" : camera.preview.error ? "Preview unavailable" : "Connecting";
+    if (badge.textContent !== previewLabel) badge.textContent = previewLabel;
+    badge.title = previewLabel;
+    const focus = tile.querySelector(".focus-camera");
+    const action = selectedCamera === "all" ? `Focus preview · ${camera.camera}` : "Show all cameras";
+    focus.setAttribute("aria-label", action);
+    focus.title = action;
+    focus.hidden = cameras.length < 2;
+    const preview = tile.querySelector(".preview-state");
+    const message = camera.error || (camera.preview.connected ? "" : camera.preview.error || "Connecting to live video…");
+    preview.hidden = !message;
+    preview.title = message;
+    if (preview.textContent !== message) preview.textContent = message;
+  }
+  selector.value = selectedCamera;
+  selector.title = selector.selectedOptions[0].textContent;
+  selector.disabled = cameras.length < 2;
+}
+
 function render(data) {
   current = data;
   const session = data.session;
-  byId("camera").setAttribute("aria-label", `Live video · ${data.camera}`);
-  byId("camera").title = data.camera;
-  byId("camera-image").alt = `Current camera preview · ${data.camera}`;
-  byId("status").textContent = labels[session.status] || "Preparing";
-  byId("status").dataset.state = session.status;
+  overview(data);
+  renderCameras(data.cameras);
   const goal = byId("goal");
   const instruction = session.instruction || "Waiting for the monitoring goal…";
   if (goal.textContent !== instruction) goal.textContent = instruction;
-  byId("preview-state").hidden = data.preview.connected;
-  byId("preview-state").textContent = data.preview.error || "Connecting to live video…";
   byId("error").hidden = !(data.error || session.error);
   byId("error").textContent = data.error || session.error || "";
   transcript(data);
 }
+
+byId("camera-select").addEventListener("change", (event) => selectCamera(event.target.value));
 
 byId("close-evidence").addEventListener("click", () => byId("evidence-dialog").close());
 byId("evidence-dialog").addEventListener("close", () => byId("evidence-image").removeAttribute("src"));
@@ -171,6 +269,8 @@ async function refresh() {
     if (!response.ok) throw new Error("Unavailable");
     render(await response.json());
   } catch {
+    byId("monitor-status").textContent = "Reconnecting";
+    byId("monitor-status").dataset.state = "error";
     byId("error").hidden = false;
     byId("error").textContent = "Couldn't refresh camera status. Reconnecting…";
   } finally {

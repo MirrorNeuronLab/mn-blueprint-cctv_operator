@@ -31,7 +31,7 @@
       "type": "domain_value",
       "required": true,
       "privacy": "confidential",
-      "description": "One approved RTSP or RTSPS camera, supplied through video_source.uri in the secure setup field."
+      "description": "One to four approved RTSP or RTSPS cameras supplied through secure setup. The first uses video_source.uri."
     },
     "monitoring_goal": {
       "type": "domain_value",
@@ -231,7 +231,7 @@
     "event": "blueprint_status",
     "heartbeat": true
   },
-  "summary": "Review one approved RTSP camera with NVIDIA real-time video captions, a live preview, saved observations and supervised monitoring goals.",
+  "summary": "Monitor up to four approved RTSP cameras with NVIDIA video captions, live previews, saved observations and a supervised monitoring goal.",
   "users": [
     "Video operators, security reviewers, safety operations teams, and site-access coordinators."
   ],

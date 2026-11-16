@@ -37,7 +37,11 @@ class Publisher:
         atomic_write_text(self.run_dir / "context_sources/outputs" / (Path(reference).stem + ".md"), markdown,
                           mode=0o644, create_parents=True)
         self.report()
+        # The legacy first observation marker also keeps interpretation of the
+        # original one-camera run on replay. Each additional feed owns its own.
         marker = f"activity:{self.store.run_id}:{caption['instruction_revision']}"
+        if caption.get("camera_slot", 1) > 1:
+            marker += ":" + caption["source_id"]
         previous = self.store.state(marker)
         matched = caption.get("goal_match") == "matched"
         # Chat gets the first window and the beginning of each distinct sighting.
@@ -47,7 +51,10 @@ class Publisher:
                         "occurred_at": caption["end_time"], "source": "cctv_operator",
                         "requires_review": False,
                         "details": [{"label": "Capture interval", "value": f"{caption['start_time']} to {caption['end_time']}"},
-                                    {"label": "Monitoring goal", "value": caption["instruction"]}]}
+                                    {"label": "Monitoring goal", "value": caption["instruction"]},
+                                    {"label": "Camera", "value": caption["camera"]}]}
+            if len(self.store.source_ids) > 1:
+                activity["message"] = f"{caption['camera']} · {caption['content']}"
             if jpeg and (image := chat_frame(caption, jpeg, snapshot.get("bbox_2d"))):
                 activity["image"] = image
             self.exchange.publish_result(caption["id"], activity, stage="live_activity",
@@ -63,12 +70,14 @@ class Publisher:
         history = self.store.history(current_run=True)
         observations = history["observations"]
         report = {"schema_version": "otterdesk.cctv.report.v6", "run_id": self.store.run_id,
-                  "source_id": self.store.source_id, "observations": observations,
+                  "source_ids": list(self.store.source_ids), "observations": observations,
                   "total_count": history["total_count"], "omitted_count": history["omitted_count"]}
+        if self.store.source_id:
+            report["source_id"] = self.store.source_id
         if state:
             report["session"] = state
         atomic_write_json(self.run_dir / "cctv_report.json", report, mode=0o644)
-        entries = [f"## {item['start_time']} to {item['end_time']}\n\n{item['content']}\n\nSource: {item['source_refs'][0]}"
+        entries = [f"## {item['camera']} · {item['start_time']} to {item['end_time']}\n\n{item['content']}\n\nSource: {item['source_refs'][0]}"
                    for item in observations]
         atomic_write_text(self.run_dir / "cctv_report.md", "# CCTV observations\n\n"
                     + "Sampled model descriptions require human review. Missing captions do not establish a clear scene.\n\n"

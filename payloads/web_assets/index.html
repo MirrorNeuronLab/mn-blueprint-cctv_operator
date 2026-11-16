@@ -8,42 +8,104 @@
     <link rel="stylesheet" href="static/style.css" />
     <script src="static/app.js" defer></script>
   </head>
-  <body class="workspace-ui workspace-live">
+  <body class="workspace-ui workspace-live cctv-dashboard">
     <a class="skip" href="#observations-title">Skip to observations</a>
     <main class="workspace-layout">
+      <header class="dashboard-heading">
+        <div>
+          <h1>Cameras at a glance</h1>
+          <p class="muted">Live previews and saved observations.</p>
+        </div>
+        <span id="monitor-status" class="monitor-status" role="status"
+          >Preparing</span
+        >
+      </header>
+      <dl class="overview-stats" aria-label="Monitoring summary">
+        <div class="workspace-card overview-stat">
+          <dt>Live previews</dt>
+          <dd id="preview-count">—</dd>
+        </div>
+        <div class="workspace-card overview-stat">
+          <dt>Needs review</dt>
+          <dd id="attention-count">—</dd>
+        </div>
+        <div class="workspace-card overview-stat">
+          <dt>Observations</dt>
+          <dd id="observation-count">—</dd>
+        </div>
+        <div class="workspace-card overview-stat">
+          <dt>Goal matches</dt>
+          <dd id="match-count">—</dd>
+        </div>
+      </dl>
       <div class="workspace-primary">
-        <section id="camera" class="video-stage" aria-label="Live video">
-          <img
-            id="camera-image"
-            src="api/preview.mjpeg"
-            alt="Current camera preview"
-          />
-          <div class="video-overlay">
-            <span id="status" role="status">Preparing</span>
+        <div class="cameras-heading workspace-panel-heading">
+          <h2>Live cameras</h2>
+          <div class="camera-controls">
+            <select id="camera-select" aria-label="Preview camera">
+              <option value="all">All cameras</option>
+            </select>
+            <details class="monitoring-goal">
+              <summary aria-label="Monitoring goal" title="Monitoring goal">
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <circle cx="12" cy="12" r="9" />
+                  <circle cx="12" cy="12" r="5" />
+                  <circle cx="12" cy="12" r="1" />
+                </svg>
+              </summary>
+              <div
+                class="goal-content"
+                role="region"
+                aria-labelledby="goal-title"
+                tabindex="0"
+              >
+                <h2 id="goal-title">Monitoring goal</h2>
+                <p id="goal">Waiting for the monitoring goal…</p>
+                <p class="muted">
+                  Live previews are separate from analyzed windows.
+                </p>
+              </div>
+            </details>
           </div>
-          <p id="preview-state" role="status">Connecting to live video…</p>
-        </section>
-        <details class="monitoring-goal">
-          <summary aria-label="Monitoring goal" title="Monitoring goal">
-            <svg
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="2"
-              aria-hidden="true"
-            >
-              <circle cx="12" cy="12" r="9" />
-              <circle cx="12" cy="12" r="5" />
-              <circle cx="12" cy="12" r="1" />
-            </svg>
-          </summary>
-          <div class="goal-content" role="region" aria-labelledby="goal-title" tabindex="0">
-            <h2 id="goal-title">Monitoring goal</h2>
-            <p id="goal">Waiting for the monitoring goal…</p>
-          </div>
-        </details>
+        </div>
+        <div id="camera-grid" role="group" aria-label="Live cameras"></div>
+        <template id="camera-tile">
+          <section class="camera-card">
+            <div class="video-stage">
+              <img class="camera-image" alt="" />
+              <span class="preview-badge">Connecting</span>
+              <button class="focus-camera" type="button">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path d="M8 3H3v5m13-5h5v5M3 16v5h5m13-5v5h-5" />
+                </svg>
+              </button>
+              <p class="preview-state" role="status" hidden></p>
+            </div>
+            <div class="camera-info">
+              <h3 class="camera-name"></h3>
+              <span class="camera-status"></span>
+            </div>
+          </section>
+        </template>
+        <p class="preview-note muted">
+          Live previews are separate from analyzed windows.
+        </p>
         <p id="error" class="workspace-alert" role="alert" hidden></p>
       </div>
       <section
@@ -52,31 +114,32 @@
       >
         <div class="timeline-heading workspace-panel-heading">
           <h2 id="observations-title" tabindex="-1">
-            Event stream <span id="caption-count">0</span>
+            Recent observations <span id="caption-count">0</span>
           </h2>
-          <div class="timeline-actions">
-            <fieldset id="filters" class="workspace-segments">
-              <legend>Show observations</legend>
-              <label
-                ><input type="radio" name="view" value="all" checked /><span
-                  >Everything</span
-                ></label
-              >
-              <label
-                ><input type="radio" name="view" value="goal" /><span
-                  >Goal matches</span
-                ></label
-              >
-            </fieldset>
-            <a
-              class="workspace-button"
-              href="api/export"
-              aria-label="Export observations"
-              download
-              >Export</a
-            >
-          </div>
+          <a
+            class="workspace-button"
+            href="api/export"
+            aria-label="Export observations"
+            download
+            >Export</a
+          >
         </div>
+        <div class="timeline-actions">
+          <fieldset id="filters" class="workspace-segments">
+            <legend>Show observations</legend>
+            <label
+              ><input type="radio" name="view" value="all" checked /><span
+                >Everything</span
+              ></label
+            >
+            <label
+              ><input type="radio" name="view" value="goal" /><span
+                >Goal matches</span
+              ></label
+            >
+          </fieldset>
+        </div>
+        <p class="timeline-scope muted">All cameras · newest first</p>
         <p id="empty" class="workspace-empty">
           No completed video observations yet.
         </p>

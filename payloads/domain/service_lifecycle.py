@@ -22,7 +22,9 @@ def start(block, inputs):
     deadline = time.monotonic() + 10
     while not operator.healthy():
         block.check()
-        if operator.failure or time.monotonic() >= deadline:
+        if operator.failure:
+            raise RuntimeError(operator.failure)
+        if time.monotonic() >= deadline:
             raise RuntimeError("The camera workspace did not become available.")
         time.sleep(.05)
     port = operator.web_socket.getsockname()[1]
@@ -43,7 +45,7 @@ def ready(block, inputs):
     operator = block.resources["operator"]
     if operator.failure:
         raise RuntimeError(operator.failure)
-    return operator.analysis.state["status"] == "running"
+    return operator.monitoring.ready
 
 
 def health(block, inputs):
@@ -52,8 +54,8 @@ def health(block, inputs):
 
 def cycle(block, inputs):
     operator = block.resources["operator"]
-    return {"status": operator.analysis.state["status"],
-            "total_captions": operator.analysis.state["total_captions"]}
+    session = operator.monitoring.session()
+    return {"status": session["status"], "total_captions": session["total_captions"]}
 
 
 def stop(block, inputs):

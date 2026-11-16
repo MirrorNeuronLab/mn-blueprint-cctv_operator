@@ -1,10 +1,10 @@
 """Validated camera and NVIDIA streaming settings; credentials stay private."""
 
-import hashlib
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urlsplit
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from .camera_sources import MAX_CAMERAS, camera_address, camera_sources, source_identity
 
 DEFAULT_PROMPT = (
     "Describe the visible scene and actions in 1–2 concise sentences. "
@@ -15,6 +15,7 @@ DEFAULT_PROMPT = (
 
 class CameraSettings(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
+    slot: int = Field(default=1, ge=1, le=MAX_CAMERAS)
     uri: str = Field(min_length=8, max_length=2048, repr=False, exclude=True)
     name: str = Field(default="Camera", min_length=1, max_length=120)
     prompt: str = Field(default=DEFAULT_PROMPT, min_length=1, max_length=4000)
@@ -25,18 +26,8 @@ class CameraSettings(BaseModel):
 
     @field_validator("uri")
     @classmethod
-    def camera_address(cls, value):
-        value = value.strip()
-        if any(ord(char) < 32 or ord(char) == 127 for char in value):
-            raise ValueError("Camera addresses cannot contain control characters.")
-        try:
-            parts = urlsplit(value)
-            if parts.scheme not in {"rtsp", "rtsps"} or not parts.hostname or parts.fragment:
-                raise ValueError()
-            parts.port
-        except ValueError:
-            raise ValueError("Enter a valid rtsp:// or rtsps:// camera address.") from None
-        return value
+    def validate_uri(cls, value):
+        return camera_address(value)
 
     @field_validator("prompt", "name")
     @classmethod
@@ -47,25 +38,19 @@ class CameraSettings(BaseModel):
 
     @property
     def source_id(self):
-        parts = urlsplit(self.uri)
-        # A query can select a different camera. Hash it without ever publishing
-        # the locator; credential rotation in userinfo keeps the same identity.
-        locator = urlunsplit((parts.scheme, parts.netloc.rsplit("@", 1)[-1], parts.path, parts.query, ""))
-        return hashlib.sha256(locator.encode()).hexdigest()
+        return source_identity(self.uri)
 
 
 def camera_settings(config):
-    source = config.get("video_source") or {}
+    sources = camera_sources(config)
     analysis = config.get("analysis") or {}
     try:
-        return CameraSettings(
-            uri=source.get("uri", ""), name=source.get("name", "Camera"),
-            prompt=(config.get("inputs", {}).get("payload", {}).get("monitoring_goal") or DEFAULT_PROMPT),
-            **analysis,
-        )
-    except ValueError:
+        prompt = config.get("inputs", {}).get("payload", {}).get("monitoring_goal") or DEFAULT_PROMPT
+        return tuple(CameraSettings(slot=slot, uri=uri, name=name, prompt=prompt, **analysis)
+                     for slot, uri, name in sources)
+    except (TypeError, ValueError):
         # Pydantic errors contain their input. Never propagate a camera credential.
-        raise ValueError("Couldn't configure camera analysis. Check the secure stream URL and analysis settings.") from None
+        raise ValueError("Couldn't configure camera analysis. Check the monitoring goal and analysis settings.") from None
 
 
 def service_url(value):

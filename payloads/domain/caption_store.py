@@ -25,8 +25,14 @@ def timestamp(value):
 
 
 class CaptionStore:
-    def __init__(self, path, *, job_id, run_id, source_id, max_records=10000):
-        self.path, self.job_id, self.run_id, self.source_id = Path(path), job_id, run_id, source_id
+    def __init__(self, path, *, job_id, run_id, source_id=None, source_ids=(), max_records=10000):
+        self.path, self.job_id, self.run_id = Path(path), job_id, run_id
+        self.source_ids = (source_id,) if source_id else tuple(source_ids)
+        if not self.source_ids:
+            raise ValueError("Caption storage requires at least one camera.")
+        self.source_id = self.source_ids[0] if len(self.source_ids) == 1 else None
+        placeholders = ",".join("?" for _ in self.source_ids)
+        self.source_scope = f"source_id IN ({placeholders})"
         self.max_records = max_records
         if isinstance(max_records, bool) or not isinstance(max_records, int) or not 1 <= max_records <= 100000:
             raise CameraStateError("Couldn't configure caption retention. Choose a capacity from 1 to 100,000.")
@@ -79,6 +85,8 @@ class CaptionStore:
                 db.execute("INSERT OR REPLACE INTO state VALUES (?,?)", (key, json.dumps(value)))
 
     def append(self, caption, jpeg=None):
+        if self.source_id is None or caption.get("source_id", self.source_id) != self.source_id:
+            raise ValueError("Save observations through the camera that produced them.")
         snapshot = caption.get("snapshot")
         if snapshot or jpeg is not None:
             if (not snapshot or not isinstance(jpeg, bytes) or not 4 <= len(jpeg) <= 512 * 1024
@@ -107,7 +115,7 @@ class CaptionStore:
         return True
 
     def history(self, *, after="", before="", current_run=False, limit=300, goal_revision=None, older_than=None):
-        terms, values = ["source_id=?"], [self.source_id]
+        terms, values = [self.source_scope], list(self.source_ids)
         if current_run:
             terms.append("run_id=?")
             values.append(self.run_id)
@@ -138,17 +146,17 @@ class CaptionStore:
     def frame(self, identity):
         with self.connect() as db:
             row = db.execute("""SELECT jpeg FROM snapshots JOIN captions ON caption_id=id
-                WHERE id=? AND source_id=?""", (identity, self.source_id)).fetchone()
+                WHERE id=? AND """ + self.source_scope, (identity, *self.source_ids)).fetchone()
         return bytes(row[0]) if row else None
 
     def next_to_index(self, model):
         with self.connect() as db:
-            row = db.execute("""SELECT payload FROM captions LEFT JOIN history_index ON history_index.caption_id=id
+            row = db.execute("""SELECT source_id,payload FROM captions LEFT JOIN history_index ON history_index.caption_id=id
                 LEFT JOIN index_retries ON index_retries.caption_id=id
-                WHERE source_id=? AND (model IS NULL OR model!=?) AND (retry_after IS NULL OR retry_after<=?)
+                WHERE """ + self.source_scope + """ AND (model IS NULL OR model!=?) AND (retry_after IS NULL OR retry_after<=?)
                 ORDER BY revision LIMIT 1""",
-                (self.source_id, model, time.time())).fetchone()
-        return json.loads(row[0]) if row else None
+                (*self.source_ids, model, time.time())).fetchone()
+        return {**json.loads(row["payload"]), "source_id": row["source_id"]} if row else None
 
     def retry_index(self, identity):
         with self.connect() as db:
@@ -161,7 +169,7 @@ class CaptionStore:
             db.execute("DELETE FROM index_retries WHERE caption_id=?", (identity,))
 
     def index_scope(self, after, before, model):
-        terms, values = ["source_id=?"], [self.source_id]
+        terms, values = [self.source_scope], list(self.source_ids)
         for supplied, clause in ((after, "end_time>=?"), (before, "start_time<=?")):
             if supplied:
                 terms.append(clause)
@@ -174,8 +182,8 @@ class CaptionStore:
     def index_counts(self, model):
         with self.connect() as db:
             total, indexed = db.execute("""SELECT count(*), count(CASE WHEN model=? THEN 1 END)
-                FROM captions LEFT JOIN history_index ON caption_id=id WHERE source_id=?""",
-                (model, self.source_id)).fetchone()
+                FROM captions LEFT JOIN history_index ON caption_id=id WHERE """ + self.source_scope,
+                (model, *self.source_ids)).fetchone()
         return total, indexed
 
     def pending(self):
@@ -185,8 +193,8 @@ class CaptionStore:
         return [json.loads(row[0]) for row in rows]
 
     def saved(self, identity, *, current_run=True):
-        query = "SELECT payload FROM captions WHERE id=? AND source_id=?"
-        values = [identity, self.source_id]
+        query = "SELECT payload FROM captions WHERE id=? AND " + self.source_scope
+        values = [identity, *self.source_ids]
         if current_run:
             query += " AND run_id=?"
             values.append(self.run_id)
