@@ -15,7 +15,7 @@ def create_operator_mcp_server(operator, *, server_factory=None):
     port = operator.mcp_socket.getsockname()[1] if hasattr(operator, "mcp_socket") else 62009
     server = create_mrtr_mcp_server("CCTV co-worker", host="127.0.0.1", port=port,
                                     instructions="Use completed NVIDIA video window observations. A read never starts capture. "
-                                                 "A goal change affects future windows; it does not confirm a condition.",
+                                                 "A change applies the full set of goals to future video windows.",
                                     server_factory=server_factory)
 
     @domain_tool(server, name="get_operator_status", structured_output=True)
@@ -33,6 +33,7 @@ def create_operator_mcp_server(operator, *, server_factory=None):
                 "status": session["status"], "state": session["status"],
                 "summary": snapshot["error"] or summary,
                 "instruction": session.get("instruction"), "instruction_revision": session.get("instruction_revision", 0),
+                "monitoring_goals": session["monitoring_goals"],
                 "observed_at": latest["end_time"] if latest else None,
                 "understanding": latest, "pipeline": {"analysis": session, "preview": snapshot["preview"],
                                                       "cameras": cameras,
@@ -75,10 +76,10 @@ def create_operator_mcp_server(operator, *, server_factory=None):
     async def answer_video_question(command_id: str, question: str, after: str = "", before: str = "") -> dict:
         return operator.questions.submit(command_id, question, after, before)
 
-    @domain_tool(server, name="set_monitoring_instruction", structured_output=True)
-    async def set_monitoring_instruction(command_id: str, instruction: str = "", clear: bool = False,
-                                         analyze_now: bool = True) -> dict:
-        return await operator.monitoring.change_goal(command_id, instruction, clear)
+    @domain_tool(server, name="set_monitoring_goals", structured_output=True)
+    async def set_monitoring_goals(command_id: str, goals: list[str], clear: bool = False,
+                                   analyze_now: bool = True) -> dict:
+        return await operator.monitoring.change_goals(command_id, goals, clear)
 
     @domain_tool(server, name="get_operation_status", structured_output=True)
     async def get_operation_status(operation_id: str, kind: Literal["command", "video"] = "command") -> dict:

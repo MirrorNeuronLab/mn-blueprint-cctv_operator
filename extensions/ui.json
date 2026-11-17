@@ -169,10 +169,10 @@
       },
       {
         "path": "inputs.payload.monitoring_goal",
-        "label": "Monitoring goal",
-        "type": "text",
+        "label": "Monitoring goals",
+        "type": "textarea",
         "required": false,
-        "description": "Optional visible condition. Leave blank for concise scene activity."
+        "description": "Enter up to five visible conditions, one per line. For example, people without safety helmets. Leave blank for general activity."
       },
       {
         "path": "outputs.folder_path",
@@ -336,10 +336,10 @@
       },
       {
         "path": "inputs.payload.monitoring_goal",
-        "label": "Monitoring goal",
-        "type": "text",
+        "label": "Monitoring goals",
+        "type": "textarea",
         "required": false,
-        "description": "Optional visible condition. Leave blank for concise scene activity."
+        "description": "Enter up to five visible conditions, one per line. For example, people without safety helmets. Leave blank for general activity."
       },
       {
         "path": "outputs.folder_path",

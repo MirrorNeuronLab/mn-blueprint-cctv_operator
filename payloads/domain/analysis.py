@@ -10,9 +10,9 @@ import httpx
 
 from .caption_store import now, timestamp
 from .errors import CameraStateError
+from .monitoring_goals import monitoring_goals
 from .realtime_client import safe_error, sse_data
-from .settings import DEFAULT_PROMPT
-from .window_evidence import assessment, box_coordinates
+from .window_evidence import box_coordinates, window_assessment
 
 
 def request_key(slot):
@@ -172,13 +172,16 @@ class Analysis:
                                       or not math.isfinite(value) or value < 0):
                 raise ValueError("Invalid NVIDIA timing.")
             latencies[field] = value
-        verdict, content, _ = assessment(content)
+        content, assessments = window_assessment(content, monitoring_goals(self.settings.prompt))
+        verdicts = {item["verdict"] for item in assessments}
+        goal_match = next((verdict for verdict in ("matched", "uncertain", "not_matched") if verdict in verdicts),
+                          "no_target")
         caption = {"id": self.session_id + ":" + key, "run_id": self.store.run_id,
                    "camera": self.settings.name, "camera_slot": self.settings.slot, "source_id": self.store.source_id,
                    "content": content, "summary": content, "scene_understanding": content,
                    "start_time": start, "end_time": end, "received_at": now(),
                    "instruction": self.settings.prompt, "instruction_revision": self.revision,
-                   "goal_match": verdict if self.settings.prompt != DEFAULT_PROMPT else "no_target",
+                   "goal_match": goal_match, "goal_assessments": assessments,
                    "model": self.state["model"], "evidence_kind": "nvidia_video_window_caption",
                    "source_refs": ["captions/" + self.session_id + "-" + key + ".json"],
                    **latencies}
@@ -187,6 +190,8 @@ class Analysis:
         if saved:
             if any(caption[k] != saved.get(k) for k in ("content", "start_time", "end_time", "instruction_revision", "model")):
                 raise ValueError("A caption identity was reused with different content.")
+            if "goal_assessments" in saved and saved["goal_assessments"] != assessments:
+                raise ValueError("A caption identity was reused with different goal verdicts.")
             caption = saved
         else:
             jpeg = None
@@ -196,11 +201,12 @@ class Analysis:
                 reference = f"snapshots/{self.session_id}-{key}.jpg"
                 snapshot = {"received_at": received, "sha256": hashlib.sha256(jpeg).hexdigest(), "source_ref": reference}
                 caption["source_refs"].append(reference)
-                if caption["goal_match"] == "matched":
+                matches = [item["goal"] for item in assessments if item["verdict"] == "matched"]
+                if len(matches) == 1:
                     # Only a localization of these exact JPEG bytes may be drawn on them.
                     try:
                         async with asyncio.timeout(min(2, self.settings.chunk_duration / 2)):
-                            decision, _, box = await self.client.review(caption["model"], self.settings.prompt, jpeg=jpeg)
+                            decision, _, box = await self.client.review(caption["model"], matches[0], jpeg=jpeg)
                         if decision == "matched" and (coords := box_coordinates(box)):
                             snapshot["bbox_2d"] = coords
                     except (TimeoutError, httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):

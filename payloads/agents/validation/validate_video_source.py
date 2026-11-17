@@ -7,6 +7,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from domain.camera_sources import camera_sources
+from domain.monitoring_goals import configured_goals
 
 
 def main():
@@ -18,6 +19,7 @@ def main():
         if not isinstance(config, dict):
             raise ValueError("Review the camera settings.")
         camera_sources(config)
+        configured_goals(config)
     except ValueError as error:
         print(json.dumps({"ok": False, "issues": [{"code": "camera_configuration", "message": str(error)}]}))
         return 1

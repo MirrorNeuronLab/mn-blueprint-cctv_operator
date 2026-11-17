@@ -1,7 +1,7 @@
 {
   "$schema": "https://mirrorneuron.io/schemas/blueprint/v1/extensions/product.schema.json",
   "category": "Physical AI",
-  "overview": "Monitor up to four approved RTSP cameras with NVIDIA video captions, live previews, saved observations and a supervised monitoring goal.",
+  "overview": "Monitor up to four approved RTSP cameras with live previews, saved observations and alerts for up to five goals.",
   "target_users": "Authorized camera operators and site reviewers.",
   "agent_role": "Co-worker for reviewing camera activity.",
   "capabilities": [
@@ -28,7 +28,7 @@
     "problem": "Reviewing a continuous camera feed takes sustained attention.",
     "benefit": "Review concise camera observations with the original video intervals.",
     "how_it_works": "NVIDIA DeepStream and vLLM analyze sampled video windows. The co-worker labels each saved observation and shows a separate live preview for each camera.",
-    "input": "One to four approved RTSP cameras and an optional shared monitoring goal.",
+    "input": "One to four approved RTSP cameras and up to five shared monitoring goals.",
     "output": "Timestamped, camera-labeled observations, reports and live previews.",
     "agent_role": "Co-worker for reviewing camera activity.",
     "target_users": "Authorized camera operators and site reviewers.",

@@ -7,36 +7,70 @@ import re
 
 from PIL import Image, ImageDraw
 
-from .settings import DEFAULT_PROMPT
+from .monitoring_goals import DEFAULT_PROMPT, monitoring_goals
 
 
-def window_prompt(goal):
-    if goal == DEFAULT_PROMPT:
-        return goal
-    return (
-        "Describe the visible scene even when the target is absent. Assess the exact condition below, "
-        "including negation. Use matched only when the requested condition is visible. Use uncertain "
-        "for obscured details. To report a missing item, its wearer or location must be visible. "
-        'Return only one JSON object {"verdict":"matched|not_matched|uncertain","summary":"one concise sentence"}. '
-        "Monitoring goal: " + goal
+def window_prompt(instruction):
+    goals = monitoring_goals(instruction)
+    if not goals:
+        return DEFAULT_PROMPT
+    guidance = (
+        "Describe the visible scene even when a condition is absent. Assess each exact condition independently, "
+        "including negation. Use matched only when the requested condition is visible, not_matched for clear "
+        "absence, and uncertain for obscured details. To report a missing item, its wearer or location must be visible. "
     )
+    if len(goals) == 1:
+        return (guidance + 'Return only one JSON object {"verdict":"matched|not_matched|uncertain",'
+                '"summary":"one concise sentence"}. Monitoring goal: ' + goals[0])
+    numbered = "\n".join(f"{index}. {goal}" for index, goal in enumerate(goals, start=1))
+    return (guidance + 'Return only one JSON object with "summary" (one concise sentence) and "verdicts" '
+            f'(exactly {len(goals)} verdict strings in the order of the numbered goals). '
+            'Use the strings "matched", "not_matched", or "uncertain". Mention visible matches in the summary.\n'
+            + numbered)
 
 
-def assessment(content):
+def assessment_json(content):
     text = content.strip()
     fenced = re.fullmatch(r"```(?:json)?\s*([\s\S]*?)\s*```", text, re.I)
     try:
         result = json.loads(fenced[1] if fenced else text)
     except ValueError:
-        result = None
+        return None
     if isinstance(result, dict) and isinstance(result.get("summary"), str) and result["summary"].strip():
-        verdict = result.get("verdict")
-        return (verdict if verdict in ("matched", "not_matched", "uncertain") else "uncertain",
-                result["summary"].strip(), result.get("bbox_2d"))
+        return result
+    return None
+
+
+def visible_verdict(value):
+    return value if value in ("matched", "not_matched", "uncertain") else "uncertain"
+
+
+def observation_text(content):
     # Free prose and legacy bbox snippets are never affirmative verdicts.
-    prose = text.split("```", 1)[0].strip()
-    return "uncertain", (prose if prose and not prose.startswith(("{", "[")) else
-                         "The model did not return a readable observation."), None
+    prose = content.split("```", 1)[0].strip()
+    return prose if prose and not prose.startswith(("{", "[")) else "The model did not return a readable observation."
+
+
+def assessment(content):
+    result = assessment_json(content)
+    if result is not None:
+        return visible_verdict(result.get("verdict")), result["summary"].strip(), result.get("bbox_2d")
+    return "uncertain", observation_text(content), None
+
+
+def window_assessment(content, goals):
+    result = assessment_json(content)
+    summary = result["summary"].strip() if result is not None else observation_text(content)
+    if not goals:
+        return summary, []
+    if len(goals) == 1:
+        verdicts = [result.get("verdict")] if result is not None else [None]
+    else:
+        verdicts = result.get("verdicts") if result is not None else None
+        if not isinstance(verdicts, list) or len(verdicts) != len(goals):
+            verdicts = [None] * len(goals)
+    return summary, [{"goal": goal, "verdict": visible_verdict(verdict)}
+                     for goal, verdict in zip(goals, verdicts, strict=True)]
 
 
 def box_coordinates(value):

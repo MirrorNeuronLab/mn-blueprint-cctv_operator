@@ -21,7 +21,7 @@ function overview(data) {
   byId("observation-count").textContent = String(data.session.total_captions || 0);
   byId("observation-count").title = "Completed observations in this run";
   byId("match-count").textContent = data.has_target ? String(data.match_count || 0) : "—";
-  byId("match-count").title = data.has_target ? "Possible matches for the current monitoring goal" : "Set a monitoring goal in Chat";
+  byId("match-count").title = data.has_target ? "Possible matches for the current monitoring goals" : "Set a monitoring goal in Chat";
   const status = byId("monitor-status");
   status.dataset.state = attention ? "degraded" : data.session.status;
   status.textContent = labels[status.dataset.state] || "Preparing";
@@ -76,6 +76,17 @@ function entry(caption) {
   full.textContent = content;
   details.append(summary, full);
   copy.append(text, details);
+  const matchedGoals = caption.goal_assessments?.filter((item) => item.verdict === "matched") || [];
+  if (matchedGoals.length) {
+    const matches = document.createElement("ul");
+    matches.setAttribute("aria-label", "Possible goal matches");
+    for (const {goal} of matchedGoals) {
+      const match = document.createElement("li");
+      match.textContent = goal;
+      matches.append(match);
+    }
+    details.append(matches);
+  }
   body.append(copy);
   if (caption.snapshot) {
     const button = document.createElement("button");
@@ -137,7 +148,7 @@ function transcript(data) {
   byId("caption-count").textContent = String(goal ? data.match_count || 0 : data.session.total_captions || 0);
   byId("empty").hidden = rows.length > 0;
   byId("empty").textContent = !goal ? "No completed video observations yet." : data.has_target
-    ? "No matches reported for this goal yet." : "Set a monitoring goal in Chat to see matches here.";
+    ? "No matches reported for these goals yet." : "Set a monitoring goal in Chat to see matches here.";
   scroll.hidden = !rows.length;
 }
 
@@ -214,7 +225,7 @@ function render(data) {
   overview(data);
   renderCameras(data.cameras);
   const goal = byId("goal");
-  const instruction = session.instruction || "Waiting for the monitoring goal…";
+  const instruction = data.has_target ? session.instruction : "Monitoring general activity.";
   if (goal.textContent !== instruction) goal.textContent = instruction;
   byId("error").hidden = !(data.error || session.error);
   byId("error").textContent = data.error || session.error || "";

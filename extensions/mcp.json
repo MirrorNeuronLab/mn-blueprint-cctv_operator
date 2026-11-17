@@ -34,6 +34,12 @@
           "state": {
             "type": "string"
           },
+          "monitoring_goals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
           "command_id": {
             "type": "string"
           },
@@ -74,7 +80,7 @@
       }
     },
     "get_operator_activity": {
-      "description": "Read each camera's first observation for a goal and the start of each possible sighting.",
+      "description": "Read each camera's first observation for a set of goals and the start of possible sightings.",
       "effect": "read",
       "inputSchema": {
         "type": "object",
@@ -119,15 +125,20 @@
         }
       }
     },
-    "set_monitoring_instruction": {
-      "description": "Change the visible condition for future windows from all configured cameras. Preserve the exact subject and negation. For a past-video question use answer_video_question. Clearing restores the configured goal. A completed receipt confirms the goal was applied. A matching observation arrives separately.",
+    "set_monitoring_goals": {
+      "description": "Replace the complete list of up to five independent visible conditions for future windows from all cameras. Preserve each subject and negation. For an addition or removal, read get_operator_status and retain the other goals. To restore the configured goals, set clear to true and supply an empty list. To monitor general activity, set clear to false and supply an empty list. Matches are reported separately after analysis.",
       "effect": "monitoring",
       "inputSchema": {
         "type": "object",
         "properties": {
-          "instruction": {
-            "type": "string",
-            "maxLength": 4000
+          "goals": {
+            "type": "array",
+            "maxItems": 5,
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4000
+            }
           },
           "clear": {
             "type": "boolean"
@@ -142,7 +153,7 @@
           }
         },
         "required": [
-          "instruction",
+          "goals",
           "clear",
           "analyze_now",
           "request_id"

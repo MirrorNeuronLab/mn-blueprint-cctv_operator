@@ -4,16 +4,19 @@ The CCTV workspace follows the working sample at
 `spark:/home/homer/Sandbox/rt_vlm`. NVIDIA `vss-rt-vlm` 3.3.0 owns DeepStream
 video decoding, window sampling and Cosmos3 Edge inference. The co-worker saves
 completed streaming captions and supplies separate, read-only live previews.
-Version 6.2 monitors up to four cameras from one co-worker and labels observations
+Version 6.3 monitors up to four cameras from one co-worker and labels observations
 and snapshots with their camera.
 
 ## Start
 
 In **Camera streams** during first-run setup, choose **Camera count**, enter an
 approved RTSP or RTSPS URL for each selected camera, then choose **Start monitoring**.
-Use **Configure** to save changes for a later run. The **Monitoring goal** applies
-to all selected cameras. Enter addresses that both the NVIDIA container and the
-preview service can reach. Keep credentials in the secure URL fields.
+Use **Configure** to save up to five **Monitoring goals** for the next run.
+Enter one visible condition per line, such as “People without safety helmets”
+or “Loading door left open”. Every goal applies to every selected camera.
+Leave the field blank to monitor general activity. Enter stream addresses
+that both the NVIDIA container and the preview service can reach. Keep
+credentials in the secure URL fields.
 
 ```bash
 mn blueprint run ./cctv_operator --node mirror_neuron@10.0.4.32 --web-ui \
@@ -122,12 +125,12 @@ so inference latency depends on the combined load. Preview health and completed
 analysis are reported per camera.
 
 **Everything** shows the newest completed window first. **Goal matches** shows
-only explicit matches for the current monitoring goal and revision, including
+only windows with an explicit match for at least one current goal, including
 matches older than the most recent routine windows. **Cameras at a glance** uses
 the shared web report template, with summary cards for connected previews,
 cameras needing review, completed observations in this run and possible matches
-for the current goal. Connection health is separate from analysis status; these
-counts do not establish incidents or complete coverage.
+for the current goals. Connection health is separate from analysis status.
+Review the original video before acting on possible matches.
 
 The camera cards show all configured sources, with the name, preview health and
 analysis status on each card. Use **Preview camera** or a card's expand button
@@ -140,16 +143,23 @@ to preserve space for video and observations. Light and dark appearances use the
 unchanged shared template tokens.
 
 Select the target icon beside the camera selector to show or hide the current
-monitoring goal. Both observation views show saved frames. Select a frame to
+monitoring goals. Both observation views show saved frames. Select a frame to
 inspect it with any image-grounded highlight. Timings
 and indexing coverage remain available through Chat and **Export**.
 **Show earlier** pages through all retained entries for this run, 300 at
 a time. **Back to latest** resumes following new windows.
 
-Chat records the first observation per camera and goal and the beginning of
-each subsequent possible sighting on that camera. A failed feed is marked
-**Needs review** while other feeds continue. Use Chat to change the goal for all
-cameras and OtterDesk to pause or stop.
+Chat records the first observation for each camera and set of goals. Each
+possible sighting starts an alert naming the newly matched goals. Continuing
+sightings share that alert until a clear sample shows the condition has ended.
+Use **Change monitoring goals** in Chat to replace the list for the current run.
+**Restore saved goals** restores the list the run started with. A failed feed
+is marked **Needs review** while other feeds continue.
+
+To forward these alerts, open the co-worker’s **Integration** tab in OtterDesk,
+connect Slack, and link an approved public channel. New possible matches appear
+as text posts in the channel while OtterDesk is running and Slack is active.
+Saved frames are available in Chat and the CCTV workspace.
 
 The NVIDIA stream supplies caption intervals. The co-worker independently
 buffers preview JPEGs and saves the one received nearest the midpoint, only
@@ -196,8 +206,8 @@ before continuing. Reports/workspace/export show the latest 300 current-run
 captions with omission counts; `get_video_history` returns up to twelve accounts,
 optionally filtered by timezone-qualified capture bounds. It never reruns vision.
 
-Other domain tools read status, completed activity and NVIDIA timings, or change
-the goal. Public authenticated Job controls and operation wrapping remain SDK-owned.
+Other domain tools read status, completed activity and NVIDIA timings, or replace
+the set of monitoring goals. The SDK owns public Job controls and operation wrapping.
 Service checkpoints are bounded to 64 MiB/1,000,000 five-second
 health cycles; rotate explicitly before capacity exhaustion.
 

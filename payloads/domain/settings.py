@@ -5,12 +5,7 @@ from urllib.parse import urlsplit
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from .camera_sources import MAX_CAMERAS, camera_address, camera_sources, source_identity
-
-DEFAULT_PROMPT = (
-    "Describe the visible scene and actions in 1–2 concise sentences. "
-    "Focus on people, vehicles, movement, and changes. "
-    "Only describe what is clearly visible; say when something is uncertain."
-)
+from .monitoring_goals import DEFAULT_PROMPT, configured_goals
 
 
 class CameraSettings(BaseModel):
@@ -43,9 +38,9 @@ class CameraSettings(BaseModel):
 
 def camera_settings(config):
     sources = camera_sources(config)
+    prompt = "\n".join(configured_goals(config)) or DEFAULT_PROMPT
     analysis = config.get("analysis") or {}
     try:
-        prompt = config.get("inputs", {}).get("payload", {}).get("monitoring_goal") or DEFAULT_PROMPT
         return tuple(CameraSettings(slot=slot, uri=uri, name=name, prompt=prompt, **analysis)
                      for slot, uri, name in sources)
     except (TypeError, ValueError):

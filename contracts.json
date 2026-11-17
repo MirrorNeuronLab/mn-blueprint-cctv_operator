@@ -37,7 +37,7 @@
       "type": "domain_value",
       "required": false,
       "privacy": "internal",
-      "description": "Describe a visible condition or leave blank for concise scene activity."
+      "description": "Enter up to five independent visible conditions, one per line, or leave blank for general activity."
     },
     "output_folder": {
       "type": "local_path",
@@ -231,7 +231,7 @@
     "event": "blueprint_status",
     "heartbeat": true
   },
-  "summary": "Monitor up to four approved RTSP cameras with NVIDIA video captions, live previews, saved observations and a supervised monitoring goal.",
+  "summary": "Monitor up to four approved RTSP cameras with live previews, saved observations and alerts for up to five goals.",
   "users": [
     "Video operators, security reviewers, safety operations teams, and site-access coordinators."
   ],

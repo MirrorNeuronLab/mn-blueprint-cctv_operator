@@ -1,12 +1,14 @@
-# CCTV co-worker 6.2.0
+# CCTV co-worker 6.3.0
 
 ## Product and compatibility
 
 One to four approved RTSP/RTSPS cameras per Job. Describe visible activity in
 sampled video windows and preserve each camera's timestamps, source references,
-live preview and saved observations. One supervised monitoring goal applies to
-all selected cameras. The original `video_source.uri` config still selects a
-single camera. `video_source.count` activates the corresponding additional
+live preview and saved observations. Up to five independent monitoring goals
+apply to all selected cameras. Configure stores a newline-delimited list under
+`inputs.payload.monitoring_goal`. A single line still represents one goal.
+The original `video_source.uri` config still selects a single camera.
+`video_source.count` activates the corresponding additional
 secure stream URL fields. Duplicate camera locators are invalid.
 This replaces the previous implementation using Spark's rt_vlm sample. Previous
 graphs, detector policies, model recipes and private databases are retired.
@@ -47,6 +49,7 @@ actual RTSP feed. Consume /v1/generate_captions SSE, cancel the caption request
 using its request ID when available, then delete the stream. Only 409 stream
 deletion receives five bounded attempts. Each camera owns one caption request on the shared model.
 Stop and goal changes await the cleanup of every request before replacement.
+Each camera assesses all goals in one caption request per video window.
 Retain unverifiable cleanup separately for each camera slot.
 At startup reconcile all saved leases, including removed slots, before registering
 any camera. A failed feed leaves other feeds running and reports the error on its
@@ -91,22 +94,28 @@ window snapshots use the independently decoded preview. Save only a JPEG receive
 the window. A localization must come from a separate review of that exact JPEG. Captions remain
 fallible sampled descriptions. Do not infer exhaustive coverage, unique people,
 identity, compliance, calibrated confidence, verified incidents or safety. No
-external messaging or physical action occurs. A human reviews original video.
+physical action occurs. A human reviews original video. The blueprint publishes
+possible matches through Job MCP. OtterDesk owns consent, destinations and
+delivery through its Slack integration.
 
 ## Supervision
 
 Use standard Job MCP supervision. Domain tools read per-camera status, final
-activity, saved history and retained NVIDIA timing, or set the shared monitoring prompt. Durable caller
-IDs reject conflicting reuse. Preserve arbitrary visible subject/condition/negation.
-An applied prompt is separate from a later completed window; clear restores the
-configured goal. Chat shows the first completed window per camera and goal
-revision and the start of each possible sighting. The read-only workspace has up
-to four live previews and newest-first event and goal timelines with
+activity, saved history and retained NVIDIA timing, or replace the shared goal set
+with `set_monitoring_goals`. Durable caller IDs reject conflicting reuse.
+Preserve each condition and its negation. Clearing restores the launch-time
+configuration. Replacing with an empty list returns to general activity.
+Chat shows the first completed window per camera and goal revision. A positive
+structured verdict for a newly matched goal emits a possible-match activity with
+the camera, capture interval and newly matched goals. A clear negative verdict
+rearms its goal on that camera. Uncertain samples retain the sighting state.
+The read-only workspace has up to four live previews and newest-first event
+and goal timelines with
 camera-labeled saved images. Compose its dashboard with the shared web report
 template, vendored unchanged, and blueprint-owned presentation styles. Summary
 cards report connected previews, cameras with preview/analysis errors, completed
-observations in the current run and positive matches for the current goal. These
-counts do not imply incidents, acknowledged findings or exhaustive coverage.
+observations in the current run and windows with a positive verdict for any
+current goal. These counts describe sampled observations.
 Keep the previews above the timeline in narrow windows and to its left in wide
 windows. Each camera card shows its name, preview health and analysis status
 separately. A camera selector and per-card focus control expand one preview;
@@ -114,7 +123,7 @@ returning to all cameras restores the grid. Selection and resizing reuse each
 camera's existing stream and leave the all-camera timeline unchanged. Remove
 obsolete camera tiles when the configured set changes. Only the event stream
 scrolls in the default view; condense summary cards in narrow panels and hide
-them in short panels. The shared monitoring goal starts collapsed and opens
+them in short panels. The shared monitoring goals start collapsed and open
 from the target icon beside the camera selector. Preview labels and tooltips
 preserve camera identity. Routine diagnostics remain available
 through Chat and export. History answers preserve the camera, verdict and any

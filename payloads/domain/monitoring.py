@@ -1,4 +1,4 @@
-"""Coordinate camera sessions and the shared monitoring goal for one run."""
+"""Coordinate camera sessions and the shared monitoring goals for one run."""
 
 import asyncio
 
@@ -6,7 +6,7 @@ from .analysis import reconcile_request, request_key
 from .camera_sources import MAX_CAMERAS
 from .errors import CameraStateError
 from .realtime_client import safe_error
-from .settings import DEFAULT_PROMPT
+from .monitoring_goals import DEFAULT_PROMPT, monitoring_goals, validate_goals
 
 
 class Monitoring:
@@ -47,6 +47,7 @@ class Monitoring:
             "error": next((camera["error"] for camera in cameras if camera["error"]), None) if status == "error" else None,
             "model": self.model,
             "instruction": self.goal["instruction"],
+            "monitoring_goals": list(monitoring_goals(self.goal["instruction"])),
             "instruction_revision": self.goal["revision"],
             "total_captions": sum(camera["total_captions"] for camera in cameras),
         }
@@ -99,23 +100,25 @@ class Monitoring:
         async with self.lock:
             await self._stop_cameras()
 
-    async def change_goal(self, identity, instruction, clear=False):
+    async def change_goals(self, identity, goals, clear=False):
         if not isinstance(identity, str) or not identity.strip() or len(identity) > 128:
             raise ValueError("A request ID of 1–128 characters is required.")
-        if not isinstance(instruction, str) or len(instruction) > 4000 or (not clear and not instruction.strip()):
-            raise ValueError("Enter a visible condition to monitor.")
+        goals = validate_goals(goals)
+        if clear and goals:
+            raise ValueError("Restore saved goals without supplying new conditions.")
+        instruction = "\n".join(goals)
         # Closing a caller's connection must not interrupt owned stream cleanup.
-        return await asyncio.shield(self._change_goal(identity, instruction, clear))
+        return await asyncio.shield(self._change_goals(identity, instruction, clear))
 
-    async def _change_goal(self, identity, instruction, clear):
+    async def _change_goals(self, identity, instruction, clear):
         request = {"run_id": self.store.run_id, "instruction": instruction, "clear": clear}
         async with self.lock:
             previous = self.store.command(identity, request)
             if previous:
                 return previous
             if self.closing or not self.ready:
-                raise CameraStateError("Start camera analysis before changing the monitoring goal.")
-            selected = self.configured_prompt if clear else instruction.strip()
+                raise CameraStateError("Start camera analysis before changing the monitoring goals.")
+            selected = self.configured_prompt if clear else instruction or DEFAULT_PROMPT
             revision = self.goal["revision"] + 1
             receipt = {"state": "accepted", "accepted": True, "command_id": identity,
                        "operation_id": identity, "instruction_revision": revision,
@@ -127,12 +130,12 @@ class Monitoring:
                         raise CameraStateError(f"Camera {slot} has an outstanding NVIDIA request. Check its analysis status.")
                 await self._stop_cameras()
                 if self.closing:
-                    raise CameraStateError("Camera analysis stopped before the monitoring goal changed.")
+                    raise CameraStateError("Camera analysis stopped before the monitoring goals changed.")
                 self.goal = {"instruction": selected, "revision": revision}
                 self.store.set_state(self.goal_key, self.goal)
                 await self._start_cameras()
-                receipt.update(state="completed", instruction=selected, analysis_ready=False,
-                               summary="Monitoring goal applied. Future video windows will use it.")
+                receipt.update(state="completed", instruction="\n".join(monitoring_goals(selected)),
+                               analysis_ready=False, summary="Monitoring goals applied to future video windows.")
             except Exception as error:
                 receipt.update(state="failed", summary=safe_error(error))
             return self.store.command(identity, request, receipt)
