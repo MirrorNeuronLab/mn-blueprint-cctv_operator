@@ -190,6 +190,8 @@ can miss activity.
 
 ## Saved state
 
+Use **Save report** in the live workspace to download the latest camera assessment. Shutdown also saves `report.html`. It cites up to 50 completed windows from this run, their cameras, capture times and individual records. Earlier windows are counted in coverage.
+
 SDK run storage is authoritative; `~/Downloads/cctv-operator` is an additional
 runtime-delivered host copy. Outputs are `captions/*.json`, available `snapshots/*.jpg`, `cctv_report.json/md`,
 `monitoring_state.json`, `final_artifact.json`, complete

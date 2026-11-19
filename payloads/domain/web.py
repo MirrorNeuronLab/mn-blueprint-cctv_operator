@@ -57,6 +57,12 @@ def create_app(operator):
         return Response(json.dumps(operator.snapshot()), media_type="application/json",
                         headers={"Content-Disposition": 'attachment; filename="cctv-observations.json"'})
 
+    @app.get("/api/report.html")
+    def download_review():
+        from .review_report import render
+        return Response(render(operator.store, operator.phase), media_type="text/html",
+                        headers={"Content-Disposition": 'attachment; filename="camera-observations.html"'})
+
     @app.get("/api/preview.mjpeg")
     async def preview(request: Request, camera: int = Query(1, ge=1, le=MAX_CAMERAS)):
         feed = operator.previews.get(camera)

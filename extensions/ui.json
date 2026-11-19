@@ -208,7 +208,7 @@
   ],
   "setup_guide": {
     "schema": "otterdesk.setup_guide.v1",
-    "introduction": "I monitor up to four cameras and save observations with their capture times. Start by choosing how many cameras to monitor.",
+    "introduction": "I can show a camera preview and time-stamped observations. To start, enter one approved stream in the secure camera field. You can add more cameras or a monitoring goal later.",
     "prompt_file": "@/payloads/prompts/setup.md",
     "sample": {
       "available": false
@@ -349,6 +349,11 @@
         "default": "~/Downloads/cctv-operator",
         "required": false
       }
-    ]
+    ],
+    "run_guidance": {
+      "on_start": "I’ll connect to the selected cameras so you can check the previews. Reviewed observations take a capture window to appear.",
+      "web_ui_ready": "Open the live monitor to check the camera framing before reviewing its time-stamped observations.",
+      "output_ready": "Open the output folder to compare a saved observation with its capture time."
+    }
   }
 }

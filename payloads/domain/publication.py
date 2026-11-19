@@ -97,10 +97,17 @@ class Publisher:
         if state:
             report["session"] = state
         atomic_write_json(self.run_dir / "cctv_report.json", report, mode=0o644)
+        matched = sum(item.get("goal_match") == "matched" for item in observations)
+        uncertain = sum(item.get("goal_match") == "uncertain" for item in observations)
+        coverage = (f"{len(observations)} of {history['total_count']} completed video windows appear below. "
+                    f"{matched} shown windows have a possible goal match and {uncertain} have an uncertain verdict. "
+                    "Verdicts apply to the instructions in effect for each window.")
         entries = [f"## {item['camera']} · {item['start_time']} to {item['end_time']}\n\n{item['content']}\n\nSource: {item['source_refs'][0]}"
                    for item in observations]
         atomic_write_text(self.run_dir / "cctv_report.md", "# CCTV observations\n\n"
-                    + "Sampled model descriptions require human review. Missing captions do not establish a clear scene.\n\n"
+                    + "## Assessment\n\n" + coverage + "\n\n"
+                    + "Check the camera and capture interval of a possible match against the original video. "
+                    + "Missing captions leave activity unknown.\n\n## Window evidence\n\n"
                     + ("\n\n".join(entries) if entries else "No completed video observations yet.")
                     + f"\n\nEarlier observations omitted from this report: {history['omitted_count']}.\n", mode=0o644)
         summary = observations[-1]["content"] if observations else "No completed video observations yet."

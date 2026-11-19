@@ -139,16 +139,17 @@
             >
           </fieldset>
         </div>
-        <p class="timeline-scope muted">All cameras · newest first</p>
         <p id="empty" class="workspace-empty">
           No completed video observations yet.
         </p>
+        <a id="empty-review" href="api/report.html" download hidden>Save report</a>
         <div
           id="transcript"
           role="region"
           aria-label="Observation timeline, newest first"
           tabindex="0"
         >
+          <p class="timeline-scope muted"><span id="window-coverage">Waiting for completed video windows.</span> <a href="api/report.html" download>Save report</a></p>
           <ol id="captions"></ol>
         </div>
         <div class="timeline-navigation">

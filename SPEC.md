@@ -70,6 +70,8 @@ succeed or attest that exact stream is gone before clearing the saved lease;
 
 ## Evidence and persistence
 
+Use **Save report** in the live workspace to download the latest camera assessment. Shutdown also saves `report.html`. It cites up to 50 completed windows from this run, their cameras, capture times and individual records. Earlier windows are counted in coverage.
+
 Validate camera input without echoing credentials. URI data never enters public
 state, captions, reports or Chat. Bind storage to Job identity and history to a
 credential-free camera locator hash. A process lock enforces one Job owner.

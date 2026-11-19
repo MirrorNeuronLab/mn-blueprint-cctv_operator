@@ -4,7 +4,7 @@
   "name": "CCTV Operator",
   "tagline": "Monitor live video and review notable events",
   "payload_api": "mn.blueprint.v1",
-  "version": "6.3.0",
+  "version": "6.4.0",
   "description": "Monitor up to four approved RTSP cameras with NVIDIA video captions, saved observations and alerts for up to five goals.",
   "workflow": "workflow.json",
   "execution": "execution.json",

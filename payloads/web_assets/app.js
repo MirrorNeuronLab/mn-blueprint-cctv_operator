@@ -145,11 +145,16 @@ function transcript(data) {
   else if (anchor?.isConnected) scroll.scrollTop += anchor.getBoundingClientRect().top - top;
   byId("latest").hidden = !olderPage && scroll.scrollTop < 4;
   byId("earlier").hidden = !(olderPage ? olderPage.omitted_count : (goal ? data.match_count - rows.length : data.omitted_count));
-  byId("caption-count").textContent = String(goal ? data.match_count || 0 : data.session.total_captions || 0);
+  const total = goal ? data.match_count : data.captions.length + (data.omitted_count || 0);
+  byId("caption-count").textContent = String(total || 0);
+  byId("window-coverage").textContent = goal
+    ? `Showing ${rows.length} of ${total || 0} possible matches for the current goals. Check each capture interval against its source.`
+    : `Showing ${rows.length} of ${total || 0} completed windows across cameras, newest first. Activity between samples is unknown.`;
   byId("empty").hidden = rows.length > 0;
   byId("empty").textContent = !goal ? "No completed video observations yet." : data.has_target
     ? "No matches reported for these goals yet." : "Set a monitoring goal in Chat to see matches here.";
   scroll.hidden = !rows.length;
+  byId("empty-review").hidden = rows.length > 0;
 }
 
 function renderCameras(cameras) {

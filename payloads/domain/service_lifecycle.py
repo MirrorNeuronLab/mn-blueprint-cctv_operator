@@ -5,6 +5,7 @@ import socket
 import time
 
 from mn_sdk.blueprint.services import claim_service_web_ui
+from mn_sdk.blueprint.hooks import report_activity
 from mn_sdk_web_ui import resolve_web_ui_binding
 from mn_sdk_mcp.cli import container_loopback_proxy_enabled
 
@@ -61,4 +62,12 @@ def cycle(block, inputs):
 def stop(block, inputs):
     operator = block.resources.pop("operator", None)
     if operator:
-        operator.stop()
+        try:
+            operator.stop()
+        finally:
+            try:
+                from .review_report import save
+                save(block, operator)
+            except Exception:
+                report_activity("The camera review could not be saved. Check the window records in cctv_report.json.",
+                                kind="diagnostic", level="warning", run_dir=block.store.run_dir)

@@ -51,6 +51,17 @@
   "outputs": {
     "artifacts": [
       {
+        "artifact_id": "review",
+        "path": "report.html",
+        "mime_type": "text/html",
+        "type": "domain_report",
+        "required": false,
+        "source_refs": [
+          "cctv_report.json"
+        ],
+        "producer": "camera_operator"
+      },
+      {
         "artifact_id": "cctv_report_json",
         "path": "cctv_report.json",
         "mime_type": "application/json",
