@@ -6,6 +6,16 @@
       "source": "gar",
       "name": "mirrorneuron-web-report-skill",
       "version": ">=1.4.1.dev14,<2"
+    },
+    {
+      "type": "agent_skill",
+      "source": "github",
+      "repo": "vercel/vercel-plugin",
+      "ref": "main",
+      "name": "vercel-connect",
+      "integrations": [
+        "slack"
+      ]
     }
   ],
   "agents": [
