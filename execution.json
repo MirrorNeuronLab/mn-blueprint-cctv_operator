@@ -27,7 +27,6 @@
       "enforcement": "hard",
       "memory_operator": ">=",
       "min_count": 1,
-      "min_memory_mb": 49152,
       "vendor": "nvidia"
     }
   },
@@ -68,7 +67,6 @@
               "type": "nvidia/gpu",
               "vendor": "nvidia",
               "driver": "cuda",
-              "min_memory_mb": 49152,
               "memory_operator": ">=",
               "count": 1
             }
